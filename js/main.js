@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { Avatar } from './avatar.js?v=114010';
-import { Voice, LiveTTS } from './voice.js?v=093826';
+import { Voice, LiveTTS } from './voice.js?v=124511';
 
 const Q = new URLSearchParams(location.search);
 const RUST = Q.has('rust') || matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -199,12 +199,12 @@ introBtn.addEventListener('click', async () => {
 });
 voice.onstate = s => {
   introBtn.classList.toggle('is-spreekt', s === 'speaking');
-  $('#say').disabled = s === 'thinking';
-  if (s === 'thinking') status('Finding her words…');
+  $('#say').disabled = s === 'thinking'; $('#hero-say').disabled = s === 'thinking';
+  if (s === 'thinking') status('Finding her words… she speaks when the whole line is ready.');
   else if (live.ready) status('Ready. Type and press “Say it”.', true);
 };
-const statusEl = $('#status');
-function status(t, ok) { statusEl.textContent = t; statusEl.classList.toggle('is-klaar', !!ok); }
+const statusEl = $('#status'), heroStatus = $('#hero-status');
+function status(t, ok) { for (const el of [statusEl, heroStatus]) { if (!el) continue; el.textContent = t; el.classList.toggle('is-klaar', !!ok); } }
 live.onprogress = (f, total) => status(`Loading her voice · ${Math.round(f * 100)}% of ${Math.round(total / 1e6)} MB`);
 live.onready = dev => status(`Ready${dev === 'webgpu' ? ' · WebGPU' : ''}. Type and press “Say it”.`, true);
 live.onerror = m => status('Her voice could not load here. Try Chrome or Edge on desktop.');
@@ -218,12 +218,16 @@ const VOORAF = {
 const norm = t => t.replace(/\s+/g, ' ').trim();
 $('#zin').addEventListener('focus', () => live.preload());
 $$('.chips button').forEach(c => c.addEventListener('click', () => { $('#zin').value = c.dataset.zin; }));
-$('#talk-form').addEventListener('submit', e => {
-  e.preventDefault(); const t = $('#zin').value.trim(); if (!t) return;
+function zeg(t) {
+  t = (t || '').trim(); if (!t) return;
   kijkNaar = null;
   const v = VOORAF[norm(t)]; if (v) { voice.playUrl(`audio/${v}.mp3`); return; }
+  if (!live.ready) status('Loading her voice once (about 90 MB), then she says it…');
   live.speak(t);
-});
+}
+$('#talk-form').addEventListener('submit', e => { e.preventDefault(); zeg($('#zin').value); });
+$('#hero-zin').addEventListener('focus', () => live.preload());
+$('#hero-zeg').addEventListener('submit', e => { e.preventDefault(); zeg($('#hero-zin').value); });
 
 // ---------- decors ----------
 const decor = $('#decor'), poi = $('#poi'), poiLabel = $('#poi-label'), ogi = $('#ogi'), pluimC = $('#pluim'), px2 = pluimC.getContext('2d');

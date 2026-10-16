@@ -413,3 +413,17 @@ main{z-index:4}
 .link--knop{border:0;background:none;padding:0;font:inherit;color:var(--inkt-dof);cursor:inherit;margin-left:18px}
 .link--knop:hover{color:var(--inkt)}
 body.trailer-aan{overflow:hidden}
+
+/* hero: ter plekke een zin intypen */
+.zeg{display:flex;align-items:center;gap:6px;padding:5px 5px 5px 16px;border-radius:999px;min-width:min(340px,100%);
+  background:rgba(255,255,255,.6);-webkit-backdrop-filter:blur(14px) saturate(170%);backdrop-filter:blur(14px) saturate(170%);
+  border:1px solid rgba(255,255,255,.85);box-shadow:0 8px 24px -16px rgba(19,18,38,.35),inset 0 1px 0 rgba(255,255,255,.9);transition:box-shadow .2s var(--ease-uit)}
+.zeg:focus-within{box-shadow:0 0 0 2px rgba(0,184,154,.35),0 10px 28px -16px rgba(19,18,38,.4)}
+.zeg input{flex:1;min-width:0;border:0;background:transparent;font:500 14px/1.2 var(--tekst);color:var(--inkt);padding:9px 0;outline:none;cursor:text}
+.zeg input::placeholder{color:var(--inkt-dof)}
+.zeg__knop{flex:none;width:36px;height:36px;border-radius:50%;border:0;background:var(--inkt);color:#fff;font:600 15px/1 var(--tekst);cursor:inherit;display:grid;place-items:center;transition:transform .12s var(--ease-uit),opacity .2s}
+.zeg__knop:active{transform:scale(.94)}
+.zeg__knop:disabled{opacity:.45}
+.zeg__status{min-height:1.4em;margin:12px 0 0;font-size:12.5px;color:var(--inkt-dof)}
+.zeg__status.is-klaar{color:var(--mint-diep)}
+.hero .link--knop{margin:6px 0 0;display:inline-block}

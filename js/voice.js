@@ -84,8 +84,27 @@ export class LiveTTS {
       const m = e.data;
       if (m.type === 'progress') { files[m.file] = [m.loaded, m.total]; let a = 0, b = 0; for (const [l, t] of Object.values(files)) { a += l; b += t; } this.onprogress(a / b, b); }
       if (m.type === 'ready') { this.ready = true; this.loading = false; this.onready(m.device); }
-      if (m.type === 'chunk' && m.id === this.id) { this.voice._waiting = true; this.voice.pushPCM(m.pcm, m.sr, false, m.tl); }
-      if (m.type === 'done' && m.id === this.id) { this.voice._waiting = false; if (!this.voice.playing) this.voice.onstate('idle'); }
+      // eerst de volledige tekst genereren, dan in één doorlopende opname afspelen (geen start-stop tussen zinnen)
+      if (m.type === 'chunk' && m.id === this.id) { this.voice._waiting = true; (this.buf ||= []).push(m); this.onchunk && this.onchunk(this.buf.length); }
+      if (m.type === 'done' && m.id === this.id) {
+        const delen = this.buf || []; this.buf = [];
+        this.voice._waiting = false;
+        if (!delen.length) { if (!this.voice.playing) this.voice.onstate('idle'); return; }
+        const sr = delen[0].sr, pauze = Math.round(sr * 0.12);      // korte ademruimte tussen zinnen
+        const n = delen.reduce((a, d) => a + d.pcm.length, 0) + pauze * (delen.length - 1), pcm = new Float32Array(n);
+        const tl = { items: [], env: [], hop: delen[0].tl ? delen[0].tl.hop : 0.01, offset: 0 };
+        let o = 0;
+        delen.forEach((d, i) => {
+          const t0 = o / sr; pcm.set(d.pcm, o);
+          if (d.tl) {
+            for (const it of d.tl.items) tl.items.push({ ...it, t0: +(it.t0 + t0).toFixed(3), t1: +(it.t1 + t0).toFixed(3) });
+            const doel = Math.round(t0 / tl.hop); while (tl.env.length < doel) tl.env.push(0);
+            tl.env.push(...d.tl.env);
+          }
+          o += d.pcm.length + (i < delen.length - 1 ? pauze : 0);
+        });
+        this.voice.pushPCM(pcm, sr, true, tl);
+      }
       if (m.type === 'error') { this.loading = false; this.onerror(m.message); }
     };
     return this.w;
@@ -93,7 +112,7 @@ export class LiveTTS {
   preload() { if (this.ready || this.loading) return; this.loading = true; this._worker().postMessage({ type: 'load' }); }
   async speak(text) {
     await this.voice.unlock(); this.voice.stop();
-    this.id++; this.voice._waiting = true; this.voice.onstate('thinking');
+    this.id++; this.buf = []; this.voice._waiting = true; this.voice.onstate('thinking');
     this._worker().postMessage({ type: 'speak', text, id: this.id, voice: 'af_heart', speed: 0.96 });
   }
 }
