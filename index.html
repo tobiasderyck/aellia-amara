@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Meet your first guide · Aellia Academy × Pixelshift</title>
+<meta name="robots" content="noindex,nofollow">
+<meta name="description" content="A real-time 3D field technician built for Aellia Academy. She looks, listens and talks back. One master character for slides, video and VR.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,200..700&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/site.css?v=114329">
+<link rel="preload" href="models/aellia.glb?v=111846" as="fetch" crossorigin>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"}}</script>
+</head>
+<body>
+<div class="licht" id="licht" aria-hidden="true"><i class="licht__halo"></i><i class="licht__vloer"></i><i class="licht__bundel b1"></i><i class="licht__bundel b2"></i><i class="licht__vignet"></i></div>
+<canvas id="dots" aria-hidden="true"></canvas>
+<div class="decor" id="decor" aria-hidden="true">
+  <div class="decor__plaat" data-scene="0" style="background-image:url(img/decor-raffinaderij.jpg)"></div>
+  <div class="decor__plaat" data-scene="1" style="background-image:url(img/decor-tankpark.jpg)"></div>
+  <div class="decor__plaat" data-scene="2" style="background-image:url(img/decor-leidingstation.jpg)"></div>
+  <div class="ogi" id="ogi"><div class="ogi__plaat" style="background-image:url(img/decor-tankpark.jpg)"></div><canvas id="pluim"></canvas>
+    <div class="ogi__hud"><span>OGI · white hot</span><span>CH₄ · ΔT 1.4 K</span></div></div>
+  <div class="poi" id="poi"><span></span><i id="poi-label"></i></div>
+</div>
+<canvas id="gl" aria-label="Real-time 3D field technician"></canvas>
+<div class="scrim" aria-hidden="true"></div>
+<div class="korrel" aria-hidden="true"></div>
+<div class="cursor" aria-hidden="true"><span></span></div>
+
+<div class="laden" id="laden"><div class="laden__in"><span class="laden__dot"></span><p>Setting up her kit</p><b id="laden-pct">0%</b></div></div>
+
+<header class="nav">
+  <a class="nav__merk" href="#top"><span class="nav__dot"></span>Aellia Academy <i>×</i> Pixelshift</a>
+  <nav><a href="#kit">Her kit</a><a href="#onsite">On site</a><a href="#talk">Talk to her</a><a href="#formats">Formats</a><a href="#app">App</a><a class="nav__cta" href="#next">Next step</a></nav>
+</header>
+
+<main id="top">
+  <section class="sec hero" data-stage="hero">
+    <div class="wrap">
+      <p class="voor">Prepared for Sharon Isaac · Marketing Manager, Aellia</p>
+      <h1 class="onthul"><span><span>Meet your</span></span><span><span>first guide.</span></span></h1>
+      <p class="lead">A real-time 3D field technician, built for Aellia Academy. She isn’t a render. She looks at you, listens, and talks back. One master character for slides, video and VR.</p>
+      <div class="acties">
+        <button class="knop" id="intro-btn"><span class="knop__ico" aria-hidden="true"></span><span>Hear her introduce herself</span></button>
+        <a class="link" href="#talk">or type her a line ↓</a>
+      </div>
+      <p class="bewijs">Pixelshift · cinematic brand film and web for VTM, The Masked Singer, Voestalpine Sadef and IMOYA. 50+ projects, 10+ years.</p>
+    </div>
+  </section>
+
+  <section class="sec kit" id="kit" data-stage="kit">
+    <div class="wrap">
+      <h2>Every item an operator would check.</h2>
+      <p class="lead">Click an item and Amara shows you how it’s worn on site. If an operator would spot it, we fix it.</p>
+      <ol class="kitlijst" id="kitlijst">
+        <li data-h="helmet"><b>Hard hat</b> chin strap fastened, never pushed back</li>
+        <li data-h="glasses"><b>Safety glasses</b> on the face in every field pose</li>
+        <li data-h="ears"><b>Hearing protection</b> ready at the neck</li>
+        <li data-h="coverall"><b>FR coverall</b> Aellia indigo, reflective tape, mint tab</li>
+        <li data-h="monitor"><b>4-gas monitor</b> O₂ · LEL · H₂S · CO, on the belt</li>
+        <li data-h="gloves"><b>Gloves</b> whenever hands touch equipment</li>
+        <li data-h="boots"><b>Safety boots</b> deep tread, laced up</li>
+        <li data-h="logo"><b>Aellia print</b> on the chest, the same on every guide</li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="sec talk" id="talk" data-stage="talk">
+    <div class="wrap">
+      <h2>Give her a line.</h2>
+      <p class="lead">Type anything. Her voice is generated live in your browser and her face follows it. No actor, no recording, no cloud service.</p>
+      <form class="paneel" id="talk-form" autocomplete="off">
+        <label for="zin" class="sr">What should she say?</label>
+        <textarea id="zin" maxlength="260" rows="3">Welcome to Aellia Academy. Before you enter the unit, check your gas monitor and fasten your chin strap.</textarea>
+        <div class="chips">
+          <button type="button" data-zin="Hi Sharon. Shall we pick the route for the rest of the cast?">Ask Sharon</button>
+          <button type="button" data-zin="Every shift starts with a toolbox talk. Five minutes that align the team on hazards, permits and the plan for the day.">Toolbox talk</button>
+          <button type="button" data-zin="Great work today. Your leak survey is complete, and every point is logged.">Well done</button>
+        </div>
+        <div class="paneel__voet">
+          <span class="status" id="status">Her voice loads once, about 90 MB.</span>
+          <button class="knop" type="submit" id="say"><span>Say it</span></button>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <section class="onsite" id="onsite">
+    <div class="onsite__stap" data-stage="site" data-scene="0">
+      <div class="wrap">
+        <div class="tabs" role="tablist" aria-label="On site scenes">
+          <button role="tab" data-tab="0" aria-selected="true"><i>01</i>Leak repair</button>
+          <button role="tab" data-tab="1" aria-selected="false"><i>02</i>Invisible gas <em>try it</em></button>
+          <button role="tab" data-tab="2" aria-selected="false"><i>03</i>Field data</button>
+        </div>
+        <div class="paneel is-aan" data-paneel="0">
+          <p class="kicker">Refinery · leak detection and repair</p>
+          <h2>She knows where the leak is.</h2>
+          <p class="lead">A procedure module, filmed nowhere. She shows the probe position, the reading and the tag, in the place it really happens.</p>
+          <button class="knop knop--licht" data-zeg="scene-ldar"><span class="knop__ico" aria-hidden="true"></span><span>Hear her explain</span></button>
+        </div>
+        <div class="paneel" data-paneel="1">
+          <p class="kicker">Tank farm · optical gas imaging</p>
+          <h2>She shows what nobody can film.</h2>
+          <p class="lead">Methane is invisible to the eye. Your turn: sweep the gas camera across the tank farm. Where the image turns white-hot, gas is escaping. Hold the lens there.</p>
+          <div class="jacht" id="jacht">
+            <button class="knop" id="jacht-start"><span class="knop__ico" aria-hidden="true"></span><span>Start the leak hunt</span></button>
+            <p class="jacht__status" id="jacht-status" aria-live="polite">The ticking speeds up as you get closer.</p>
+          </div>
+        </div>
+        <div class="paneel" data-paneel="2">
+          <p class="kicker">Pipeline station · methane regulation</p>
+          <h2>Built on real field work.</h2>
+          <div class="cijfers">
+            <p><b data-tel="10419498">10,419,498</b><span>sources measured by Aellia experts in 2025</span></p>
+            <p><b data-tel="38689058">38,689,058</b><span>kg of annualised emissions detected, so customers could repair the leaks</span></p>
+          </div>
+          <button class="knop knop--licht" data-zeg="scene-pipeline"><span class="knop__ico" aria-hidden="true"></span><span>Hear her explain</span></button>
+          <p class="bron">Figures: aellia.com</p>
+        </div>
+      </div>
+      <div class="zoeker" id="zoeker" aria-hidden="true"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="52"/><circle class="zoeker__vul" cx="60" cy="60" r="52"/></svg><span>Hold still…</span></div>
+    </div>
+  </section>
+
+  <section class="sec formats" id="formats" data-stage="formats">
+    <div class="wrap">
+      <h2>One master.<br>Every format.</h2>
+      <p class="lead">Everything Academy needs, today and in five years, is a render, a pose or an animation of this same character.</p>
+      <div class="modi" role="tablist">
+        <button role="tab" data-mode="slide" aria-selected="false"><b>Slide</b><span>A sharp still in any pose, for decks and e-learning.</span></button>
+        <button role="tab" data-mode="motion" aria-selected="true"><b>Video</b><span>The same rig walks and talks for instructional video.</span></button>
+        <button role="tab" data-mode="vr" aria-selected="false"><b>VR</b><span>A game-ready mesh for simulations and VR training.</span></button>
+      </div>
+      <p class="spec" id="spec"></p>
+      <p class="sleep"><span aria-hidden="true">⟲</span> Drag anywhere to turn her around</p>
+    </div>
+    <figure class="still" id="still"><img src="img/still-hq.jpg" alt="High-resolution still of Amara, full body"><figcaption>Same master · high-resolution still for slides and print</figcaption></figure>
+  </section>
+
+  <section class="sec app" id="app" data-stage="app">
+    <div class="wrap">
+      <div class="app__tekst">
+        <h2>In every pocket.<br>On every site.</h2>
+        <p class="lead">The same guide lives in the Academy app. A two-minute toolbox talk before the shift, with her face, her voice and the checks that matter today.</p>
+        <ul class="app__punten">
+          <li><b>Before the shift</b> a short briefing, the same on every site</li>
+          <li><b>In the operator’s language</b> one character, every country Aellia works in</li>
+          <li><b>Proof of learning</b> each check is ticked and logged</li>
+        </ul>
+        <button class="knop" data-app><span class="knop__ico" aria-hidden="true"></span><span>Play the toolbox talk</span></button>
+      </div>
+      <div class="tel" aria-label="Aellia Academy app on a phone">
+        <div class="tel__scherm" id="telscherm">
+          <div class="tel__status"><span>06:42</span><span class="tel__eiland"></span><span>5G</span></div>
+          <div class="tel__kop"><span class="nav__dot"></span><div><b>Aellia Academy</b><i>Toolbox talk · Unit 3</i></div><span class="tel__live">LIVE</span></div>
+          <div class="tel__balk"><span id="tel-voortgang"></span></div>
+          <div class="tel__onder">
+            <ol class="tel__checks" id="tel-checks">
+              <li>Bump-test your gas monitor</li>
+              <li>Fasten your chin strap</li>
+              <li>Tell the control room where you are</li>
+            </ol>
+            <button class="tel__knop" data-app><span class="knop__ico" aria-hidden="true"></span>Play · 0:12</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec cast" data-stage="cast">
+    <div class="wrap">
+      <h2>Four more guides.<br>Same pipeline.</h2>
+      <p class="lead">Each one mirrors an audience Academy serves, from the first week on site to the conversation with a regulator.</p>
+      <div class="cast__rij">
+        <figure><div class="kader"><img src="img/engineer.jpg" alt="Emissions engineer concept" loading="lazy"><i class="glans" aria-hidden="true"></i></div><figcaption><b>Emissions Engineer</b>OGI · quantification</figcaption></figure>
+        <figure><div class="kader"><img src="img/advisor.jpg" alt="Environmental advisor concept" loading="lazy"><i class="glans" aria-hidden="true"></i></div><figcaption><b>Environmental Advisor</b>Clients · regulators</figcaption></figure>
+        <figure><div class="kader"><img src="img/mentor.jpg" alt="Senior trainer concept" loading="lazy"><i class="glans" aria-hidden="true"></i></div><figcaption><b>Senior Trainer</b>Mentor · culture</figcaption></figure>
+        <figure><div class="kader"><img src="img/graduate.jpg" alt="Graduate operator concept" loading="lazy"><i class="glans" aria-hidden="true"></i></div><figcaption><b>Graduate Operator</b>Onboarding · the learner</figcaption></figure>
+      </div>
+      <p class="noot">Concept stills. Names, backgrounds and regional variants are co-created with Aellia teams across countries.</p>
+    </div>
+  </section>
+
+  <section class="sec next" id="next" data-stage="next">
+    <div class="wrap">
+      <h2>Let’s choose the route and meet the cast together.</h2>
+      <p class="lead">Thirty minutes is enough. We walk through route B, the cast and the rollout, and you can ask her anything yourself.</p>
+      <div class="acties">
+        <a class="knop" href="mailto:tobiasderyck@gmail.com?subject=Aellia%20Academy%20avatars%20%E2%80%94%20next%20step"><span>Plan the call</span></a>
+        <a class="link" href="tel:+32479435526">+32 479 43 55 26</a>
+      </div>
+      <p class="sign">Tobias De Ryck · Pixelshift · <a href="https://www.pixelshift.be">pixelshift.be</a></p>
+      <p class="credits">Boot scan based on “<a href="https://sketchfab.com/3d-models/quechua-boot-cdab81d8de51468388ea250a09432075">Quechua Boot</a>” by <a href="https://sketchfab.com/hippieandcorporate">hippieandcorporate</a>, <a href="http://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>, recoloured and refitted.</p>
+    </div>
+  </section>
+</main>
+
+<div class="hotspots" id="hotspots" aria-label="PPE points">
+  <button data-h="helmet" aria-label="Hard hat"></button><button data-h="glasses" aria-label="Safety glasses"></button>
+  <button data-h="ears" aria-label="Hearing protection"></button><button data-h="coverall" aria-label="FR coverall"></button>
+  <button data-h="monitor" aria-label="4-gas monitor"></button><button data-h="gloves" aria-label="Gloves"></button>
+  <button data-h="boots" aria-label="Safety boots"></button><button data-h="logo" aria-label="Aellia print"></button>
+</div>
+<div class="label" id="label" aria-live="polite"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script src="https://unpkg.com/lenis@1.1.13/dist/lenis.min.js"></script>
+<script type="module" src="js/main.js?v=114406"></script>
+</body>
+</html>
