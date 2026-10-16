@@ -448,3 +448,20 @@ body.trailer-aan{overflow:hidden}
 .quiz__opties button.is-fout{border-color:#e2603f;background:rgba(226,96,63,.1)}
 .quiz__opties button:disabled{cursor:default}
 .quiz__uitleg{min-height:1.4em;font-size:13.5px;color:var(--inkt-dof);margin:0 0 6px}
+
+.cast figure{cursor:inherit}
+.cast figure.is-actief .kader{box-shadow:0 0 0 2px var(--mint),0 26px 50px -24px rgba(19,18,38,.45)}
+.cast figure:focus-visible{outline:2px solid var(--mint-diep);outline-offset:4px;border-radius:8px}
+/* slot: licht uit, haar lamp aan */
+.slot-knop{display:block;margin:22px 0 0}
+html,body{transition:background-color .7s var(--ease-uit)}
+body.licht-uit,html.licht-uit{background:#0b0b11}
+body.licht-uit .licht,body.licht-uit .korrel{opacity:0;transition:opacity .7s}
+body.licht-uit #dots{opacity:.12;transition:opacity .7s}
+body.licht-uit .next h2,body.licht-uit .next .lead,body.licht-uit .next .link,body.licht-uit .sign,body.licht-uit .credits,body.licht-uit .sign a,body.licht-uit .credits a{color:rgba(255,255,255,.86);transition:color .7s}
+body.licht-uit .next .lead,body.licht-uit .sign,body.licht-uit .credits{color:rgba(255,255,255,.55)}
+body.licht-uit .nav{background:rgba(20,20,30,.55);border-color:rgba(255,255,255,.12)}
+body.licht-uit .nav a,body.licht-uit .nav__merk{color:rgba(255,255,255,.8)}
+body.licht-uit .next .knop{background:var(--mint);color:var(--inkt);box-shadow:0 0 0 0 rgba(0,244,205,.6),0 0 40px 6px rgba(0,244,205,.35);animation:gloei 1.8s var(--ease-uit) infinite}
+@keyframes gloei{0%{box-shadow:0 0 0 0 rgba(0,244,205,.55),0 0 40px 6px rgba(0,244,205,.3)}100%{box-shadow:0 0 0 18px rgba(0,244,205,0),0 0 40px 6px rgba(0,244,205,.3)}}
+body.licht-uit .slot-knop{opacity:0;pointer-events:none}

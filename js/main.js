@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-import { Avatar } from './avatar.js?v=124856';
+import { Avatar } from './avatar.js?v=180047';
 import { Voice, LiveTTS } from './voice.js?v=124511';
 
 const Q = new URLSearchParams(location.search);
@@ -40,7 +40,7 @@ const STANDEN = {
   talk:    { cx: -0.26, cy: 1.53, cz: 1.75, ly: 1.52, fov: 24 },   // medium shot tot de borst, zoals een avatar in een call
   formats: { cx: 0.82, cy: 1.02, cz: 5.6, ly: 0.98, fov: 24 },
   cast:    { cx: -1.32, cy: 1.05, cz: 6.4, ly: 0.98, fov: 24 },
-  next:    { cx: -0.55, cy: 1.44, cz: 2.2, ly: 1.40, fov: 24 },
+  next:    { cx: -0.55, cy: 1.5, cz: 2.75, ly: 1.48, fov: 24 },   // ruimer, zodat de hanglamp boven haar in beeld is
   app:     { cx: 0.0, cy: 1.50, cz: 2.0, ly: 1.47, fov: 30 },   // medium shot in het gsm-scherm (fov = schermhoogte)
 };
 const MOB = {   // mobiel: zij in de bovenste helft, tekst eronder
@@ -424,6 +424,65 @@ const castRij = $('.cast__rij');
   }
 }
 
+// ---------- cast: klik op een gids en Amara stelt hem of haar voor ----------
+$$('.cast figure[data-wie]').forEach(f => {
+  const speel = async () => {
+    $$('.cast figure').forEach(x => x.classList.toggle('is-actief', x === f));
+    const r = f.getBoundingClientRect(), nd = new THREE.Vector3((r.left + r.width / 2) / innerWidth * 2 - 1, -((r.top + r.height / 2) / innerHeight) * 2 + 1, 0.5).unproject(camera);
+    const dir = nd.sub(camera.position).normalize(); kijkNaar = camera.position.clone().add(dir.multiplyScalar(3.5));   // ze kijkt naar de kaart
+    await voice.playUrl(`audio/cast-${f.dataset.wie}.mp3`); kijkNaar = camera.position.clone().add(dir);
+    clearTimeout(speel.t); speel.t = setTimeout(() => { kijkNaar = null; }, 1600);
+  };
+  f.addEventListener('click', speel); f.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); speel(); } });
+});
+
+// ---------- slot: hanglamp met trekkoord; zij trekt, de site gaat uit, haar lamp aan ----------
+const lamp = new THREE.Group(); lamp.visible = false; scene.add(lamp);
+const LAMP = new THREE.Vector3(-0.42, 2.0, 0.24);
+{
+  const metaal = new THREE.MeshStandardMaterial({ color: 0x26302f, roughness: 0.45, metalness: 0.6 });
+  const kap = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.17, 0.13, 40, 1, true), metaal); kap.position.copy(LAMP); kap.material.side = THREE.DoubleSide; lamp.add(kap);
+  const top = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.045, 0.05, 24), metaal); top.position.copy(LAMP).add(new THREE.Vector3(0, 0.085, 0)); lamp.add(top);
+  const kabel = new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.004, 1.6, 8), new THREE.MeshStandardMaterial({ color: 0x1b1b1f, roughness: 0.7 }));
+  kabel.position.copy(LAMP).add(new THREE.Vector3(0, 0.9, 0)); lamp.add(kabel);
+}
+const peer = new THREE.Mesh(new THREE.SphereGeometry(0.038, 24, 16), new THREE.MeshStandardMaterial({ color: 0xfff4dc, emissive: 0xffd9a0, emissiveIntensity: 0.15, roughness: 0.2 }));
+peer.position.copy(LAMP).add(new THREE.Vector3(0, -0.035, 0)); lamp.add(peer);
+const koord = new THREE.Mesh(new THREE.CylinderGeometry(0.0018, 0.0018, 1, 6), new THREE.MeshStandardMaterial({ color: 0xd9d4c8, roughness: 0.8 })); lamp.add(koord);
+const bol = new THREE.Mesh(new THREE.SphereGeometry(0.011, 16, 12), new THREE.MeshStandardMaterial({ color: 0xb08d4a, metalness: 0.9, roughness: 0.3 })); lamp.add(bol);
+const lampLicht = new THREE.SpotLight(0xffd8a6, 0, 6, 0.75, 0.55, 1.6); lampLicht.position.copy(LAMP); lampLicht.target.position.set(0.0, 0.9, 0.2); lamp.add(lampLicht, lampLicht.target);
+const KOORD_X = LAMP.x + 0.1, KOORD_Z = LAMP.z + 0.02; let koordTrek = 0;
+function zetKoord() {
+  const y0 = LAMP.y - 0.07, y1 = 1.6 - koordTrek;
+  koord.scale.y = y0 - y1; koord.position.set(KOORD_X, (y0 + y1) / 2, KOORD_Z); bol.position.set(KOORD_X, y1 - 0.01, KOORD_Z);
+}
+zetKoord();
+let lichtDoel = 1, lichtK2 = 1, slotGedaan = false, slotBezig = false;
+function lichtStap(dt) {
+  lichtK2 = damp(lichtK2, lichtDoel, 3.2, dt);
+  key.intensity = lerp(0.12, 3.3, lichtK2); rim.intensity = lerp(0.9, 2.6, lichtK2); fill.intensity = lerp(0.04, 0.32, lichtK2);
+  scene.environmentIntensity = lerp(0.07, 0.42, lichtK2);
+  lampLicht.intensity = lerp(14, 0, lichtK2); peer.material.emissiveIntensity = lerp(6, 0.15, lichtK2);
+}
+function klik() { try { const c = voice.ctx; if (!c || STIL) return; const o = c.createOscillator(), g = c.createGain(); o.type = 'square'; o.frequency.value = 2600; g.gain.setValueAtTime(0.12, c.currentTime); g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + 0.035); o.connect(g).connect(c.destination); o.start(); o.stop(c.currentTime + 0.05); } catch (e) {} }
+const wacht = ms => new Promise(r => setTimeout(r, ms));
+async function slot() {
+  if (slotBezig || actief !== 'next') return; slotBezig = true;
+  const nog = () => actief === 'next';
+  avatar.dans(2.6); await zegt('einde-1'); if (!nog()) { slotBezig = false; return; }
+  avatar.reik('R', () => ({ tip: bol.position.clone(), a: new THREE.Vector3(0.1, 1, 0.05), hand: 0.13, pole: new THREE.Vector3(-1, -0.7, 0.2), palm: new THREE.Vector3(1, 0, 0) }));
+  zegt('einde-2'); await wacht(1500); if (!nog()) { avatar.reik('R', null); slotBezig = false; return; }
+  for (let i = 0; i <= 8; i++) { koordTrek = 0.075 * Math.sin(i / 8 * Math.PI / 2); zetKoord(); await wacht(22); }
+  klik(); lichtDoel = 0; document.body.classList.add('licht-uit'); document.documentElement.classList.add('licht-uit');
+  await wacht(140);
+  for (let i = 8; i >= 0; i--) { koordTrek = 0.075 * Math.sin(i / 8 * Math.PI / 2); zetKoord(); await wacht(26); }
+  await wacht(350); avatar.reik('R', null); await wacht(500);
+  slotGedaan = true; slotBezig = false;
+  if (nog()) zegt('einde-3');
+}
+function lichtAan() { lichtDoel = 1; document.body.classList.remove('licht-uit'); document.documentElement.classList.remove('licht-uit'); }
+$('#slot-knop').addEventListener('click', () => slot());
+
 // ---------- formaten: haar ronddraaien met de muis (alleen rond de verticale as) ----------
 const draai = { y: 0, sleept: false, x0: 0, y0: 0 };
 addEventListener('pointerdown', e => {
@@ -455,6 +514,9 @@ function setWire(on) {
 }
 function opSectie(s) {
   if (s !== 'formats') draai.y = 0;
+  lamp.visible = s === 'next';
+  if (s === 'next') { if (slotGedaan) { lichtDoel = 0; document.body.classList.add('licht-uit'); document.documentElement.classList.add('licht-uit'); } else if (voice.ctx && voice.ctx.state === 'running' && !RUST) setTimeout(() => slot(), 700); }
+  else if (lichtDoel !== 1) lichtAan();
   if (s !== 'formats') { still.classList.remove('is-aan'); setWire(false); avatar.setMode('idle'); avatar.root.visible = true; floor.visible = true; renderer.domElement.style.opacity = ''; } else zetModus(modus);
   // pas daarna de inloop (anders zet de regel hierboven haar terug op 'idle' en schuift ze binnen)
   if (s === 'cast' && !RUST && avatar.mixer) avatar.startIntro({ x: 1.9, zwaai: false, handen: true });   // wandelt binnen, vouwt haar handen
@@ -530,7 +592,7 @@ function lus(ms) {
     }
     if (!avatar.inIntro) avatar.root.rotation.y = damp(avatar.root.rotation.y, actief === 'formats' ? draai.y : rotDoel, draai.sleept ? 14 : 3, dt);
     if (scene_i >= 0) { const p = plaatNaarScherm(...SCENES[scene_i].poi); poi.style.transform = `translate3d(${p.x}px,${p.y}px,0)`; }
-    tekenPluim(t, dt); jachtStap(dt);
+    tekenPluim(t, dt); jachtStap(dt); lichtStap(dt);
   }
   tekenDots(t, voice.level); tekenStof(t, dt); telStap();
   if (castRij && !castRij.classList.contains('is-zichtbaar') && castRij.getBoundingClientRect().top < innerHeight * 0.82) castRij.classList.add('is-zichtbaar');   // vangnet naast de IntersectionObserver

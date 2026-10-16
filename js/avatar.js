@@ -396,6 +396,17 @@ roughnessFactor = mix(roughnessFactor, 0.6, nieuwBand);`);
     this.leun.doel = 0.035 * this.speaking; const leun = this.leun.step(dt);
     const BX = V(1, 0, 0), BY = V(0, 1, 0), BZ = V(0, 0, 1);
     this._rotLocalWorld(B.spine_03, BX, leun);
+    if (this._dans) {                                  // klein, professioneel blij dansje: heupwiegen in de romp + schouders
+      const u = this.t - this._dans.t0, D_ = this._dans.dur, env = Math.min(1, u / 0.4) * Math.min(1, Math.max(0, (D_ - u) / 0.5));
+      if (u > D_) this._dans = null;
+      else {
+        const r = this.root.rotation.y, fw = V(0, 0, 1).applyAxisAngle(BY, r), zij = V(1, 0, 0).applyAxisAngle(BY, r);
+        this._rotLocalWorld(B.spine_03, fw, 0.06 * Math.sin(u * Math.PI * 2 * 1.7) * env);
+        this._rotLocalWorld(B.spine_03, BY, 0.05 * Math.sin(u * Math.PI * 2 * 0.85) * env);
+        this._rotLocalWorld(B.spine_05, zij, 0.03 * Math.abs(Math.sin(u * Math.PI * 2 * 1.7)) * env);
+        if (Math.floor(u * 3.4) !== this._dans.tel) { this._dans.tel = Math.floor(u * 3.4); this.knik.v += 0.45 * env; }
+      }
+    }
     for (const z of ['R', 'L']) {
       const sg = z === 'R' ? -1 : 1, lo = z.toLowerCase();
       const ua = B['upperarm_' + lo], la = B['lowerarm_' + lo], ha = B['hand_' + lo]; if (!ua || !la) continue;
@@ -597,6 +608,7 @@ roughnessFactor = mix(roughnessFactor, 0.6, nieuwBand);`);
     return S.add(V(-0.20 - 0.065 * sw, 0.27 - 0.02 * Math.abs(sw), 0.13).applyAxisAngle(V(0, 1, 0), r));
   }
   get inIntro() { return !!this.intro; }
+  dans(dur = 2.4) { this._dans = { t0: this.t, dur, tel: -1 }; this._zet('klaar'); this.mouth.smile = 0.95; clearTimeout(this._lachT); this._lachT = setTimeout(() => { this.mouth.smile = 0.62; }, (dur + 1) * 1000); }
   // reacties voor de quick check
   ja() { this.knik.v += 1.7; setTimeout(() => { this.knik.v += 1.3; }, 360); this.mouth.smile = 0.95; clearTimeout(this._lachT); this._lachT = setTimeout(() => { this.mouth.smile = 0.62; }, 2600); this._zet('klaar'); }
   nee() { this._schud = this.t; this.kanteling.doel = 0.05; setTimeout(() => { this.kanteling.doel = 0; }, 1400); this.mouth.smile = 0.25; clearTimeout(this._lachT); this._lachT = setTimeout(() => { this.mouth.smile = 0.62; }, 2600); }
