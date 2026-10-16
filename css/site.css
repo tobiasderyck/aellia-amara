@@ -374,3 +374,42 @@ main{z-index:4}
 @media (prefers-reduced-motion:reduce){.cast figure,.kader,.kader img{transition:none!important;transform:none!important;opacity:1!important;clip-path:none!important}}
 
 #gl{transition:opacity .55s var(--ease-uit)}
+
+/* ---------- trailer: start met geluid, daarna opent de meetstip (Aellia-logo) de site als een iris ---------- */
+@property --gat { syntax: '<length>'; inherits: true; initial-value: 0px; }
+.trailer{position:fixed;inset:0;z-index:85;--gat:0px;--px:50%;--py:52%}
+.trailer[hidden]{display:none}
+.trailer__beeld{position:absolute;inset:0;background:#07070c;
+  -webkit-mask:radial-gradient(circle at var(--px) var(--py),transparent var(--gat),#000 calc(var(--gat) + .5px));
+          mask:radial-gradient(circle at var(--px) var(--py),transparent var(--gat),#000 calc(var(--gat) + .5px))}
+.trailer.is-open{--gat:160vmax;transition:--gat 1.35s cubic-bezier(.72,0,.18,1)}
+.trailer video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform 1.6s cubic-bezier(.72,0,.18,1),filter .6s}
+.trailer.is-open video{transform:scale(1.12)}
+.trailer__start{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;padding:0 var(--pad) 12vh;color:#fff;
+  background:linear-gradient(180deg,rgba(7,7,12,.25) 0%,rgba(7,7,12,.15) 40%,rgba(7,7,12,.78) 100%);transition:opacity .45s var(--ease-uit)}
+.trailer.speelt .trailer__start{opacity:0;pointer-events:none}
+.trailer__merk{display:flex;align-items:center;gap:10px;font:600 13px/1 var(--tekst);color:rgba(255,255,255,.75);margin:0 0 22px}
+.trailer__merk i{font-style:normal;opacity:.6}
+.trailer__titel{font:250 clamp(54px,8vw,124px)/.95 var(--display);letter-spacing:-.035em;margin:0 0 16px}
+.trailer__sub{font-size:17px;color:rgba(255,255,255,.78);margin:0 0 30px;max-width:44ch}
+.trailer__knoppen{display:flex;align-items:center;gap:22px}
+.knop--wit{background:#fff;color:var(--inkt)}
+.trailer__skip,.trailer__verder{border:0;background:none;color:rgba(255,255,255,.72);font:500 14px/1 var(--tekst);cursor:inherit;padding:10px 0}
+.trailer__skip:hover,.trailer__verder:hover{color:#fff}
+.trailer__verder{position:absolute;right:var(--pad);bottom:34px;opacity:0;pointer-events:none;transition:opacity .4s var(--ease-uit);
+  padding:10px 16px;border-radius:999px;background:rgba(255,255,255,.12);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.trailer.speelt .trailer__verder{opacity:1;pointer-events:auto}
+.trailer.is-open .trailer__verder{opacity:0;pointer-events:none}
+/* de meetstip verschijnt op haar glimlach en wordt de rand van de iris */
+.trailer__punt{position:absolute;left:var(--px);top:var(--py);width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:50%;background:var(--mint);
+  box-shadow:0 0 0 2px rgba(255,255,255,.9),0 0 24px 6px rgba(0,244,205,.55);transform:scale(0);transition:transform .45s cubic-bezier(.34,1.56,.64,1)}
+.trailer.is-punt .trailer__punt{transform:scale(1)}
+.trailer.is-punt:not(.is-open) .trailer__punt{animation:stip 1.2s var(--ease-uit) infinite .45s}
+@keyframes stip{0%{box-shadow:0 0 0 2px rgba(255,255,255,.9),0 0 0 0 rgba(0,244,205,.6)}100%{box-shadow:0 0 0 2px rgba(255,255,255,.9),0 0 0 22px rgba(0,244,205,0)}}
+.trailer.is-open .trailer__punt{transform:scale(0);transition-duration:.25s}
+.trailer__ring{position:absolute;left:var(--px);top:var(--py);width:calc(var(--gat) * 2);height:calc(var(--gat) * 2);border-radius:50%;transform:translate(-50%,-50%);
+  pointer-events:none;opacity:0;box-shadow:0 0 0 2px var(--mint),0 0 40px 8px rgba(0,244,205,.35)}
+.trailer.is-open .trailer__ring{opacity:1}
+.link--knop{border:0;background:none;padding:0;font:inherit;color:var(--inkt-dof);cursor:inherit;margin-left:18px}
+.link--knop:hover{color:var(--inkt)}
+body.trailer-aan{overflow:hidden}

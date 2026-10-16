@@ -8,7 +8,7 @@
 <meta name="description" content="A real-time 3D field technician built for Aellia Academy. She looks, listens and talks back. One master character for slides, video and VR.">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,200..700&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/site.css?v=114329">
+<link rel="stylesheet" href="css/site.css?v=123249">
 <link rel="preload" href="models/aellia.glb?v=111846" as="fetch" crossorigin>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"}}</script>
 </head>
@@ -28,6 +28,22 @@
 <div class="korrel" aria-hidden="true"></div>
 <div class="cursor" aria-hidden="true"><span></span></div>
 
+<div class="trailer" id="trailer" aria-label="Amara trailer">
+  <div class="trailer__beeld">
+    <video id="trailer-video" playsinline preload="auto" poster="img/trailer-poster.jpg"><source src="video/amara-trailer.mp4" type="video/mp4"></video>
+    <div class="trailer__start" id="trailer-start">
+      <p class="trailer__merk"><span class="nav__dot"></span>Aellia Academy <i>×</i> Pixelshift</p>
+      <p class="trailer__titel">Meet Amara.</p>
+      <p class="trailer__sub">Your first Academy guide, brought to life. Sound on.</p>
+      <div class="trailer__knoppen">
+        <button class="knop knop--wit" id="trailer-play"><span class="knop__ico" aria-hidden="true"></span><span>Play the trailer</span></button>
+        <button class="trailer__skip" id="trailer-skip">Skip to the site</button>
+      </div>
+    </div>
+  </div>
+  <span class="trailer__punt" aria-hidden="true"></span><span class="trailer__ring" aria-hidden="true"></span>
+  <button class="trailer__verder" id="trailer-verder">Skip ›</button>
+</div>
 <div class="laden" id="laden"><div class="laden__in"><span class="laden__dot"></span><p>Setting up her kit</p><b id="laden-pct">0%</b></div></div>
 
 <header class="nav">
@@ -44,6 +60,7 @@
       <div class="acties">
         <button class="knop" id="intro-btn"><span class="knop__ico" aria-hidden="true"></span><span>Hear her introduce herself</span></button>
         <a class="link" href="#talk">or type her a line ↓</a>
+        <button class="link link--knop" id="trailer-weer">▶ Watch the trailer</button>
       </div>
       <p class="bewijs">Pixelshift · cinematic brand film and web for VTM, The Masked Singer, Voestalpine Sadef and IMOYA. 50+ projects, 10+ years.</p>
     </div>
@@ -208,6 +225,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
 <script src="https://unpkg.com/lenis@1.1.13/dist/lenis.min.js"></script>
-<script type="module" src="js/main.js?v=114406"></script>
+<script type="module" src="js/main.js?v=123249"></script>
 </body>
 </html>

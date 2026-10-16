@@ -485,6 +485,45 @@ function lus(ms) {
 }
 
 // ---------- laden ----------
+// ---------- trailer: eerst de film (met geluid), dan opent de meetstip de site ----------
+const trailer = $('#trailer'), tv = $('#trailer-video');
+let trailerAan = !!trailer && !RUST, siteGestart = false;
+function siteStart() {
+  if (siteGestart) return; siteGestart = true;
+  document.body.classList.add('is-geladen');
+  if (!RUST && actief === 'hero' && scrollY < innerHeight * 0.3) { avatar.startIntro(); avatar.update(0); }   // ze wandelt binnen en zwaait
+}
+function trailerToon() {
+  trailerAan = true; trailer.hidden = false; trailer.className = 'trailer'; document.body.classList.add('trailer-aan');
+  if (lenis) lenis.stop();
+}
+function trailerOpen() {                 // meetstip verschijnt, daarna gaat de iris open
+  if (!trailerAan || trailer.classList.contains('is-punt')) return;
+  trailer.classList.add('is-punt');
+  const wacht = () => {
+    if (!window.READY) { setTimeout(wacht, 200); return; }   // model nog niet klaar: de stip blijft pulseren
+    window.scrollTo(0, 0);
+    trailer.classList.add('is-open'); siteStart();
+    document.body.classList.remove('trailer-aan'); if (lenis) lenis.start();
+    setTimeout(() => { tv.pause(); trailer.hidden = true; trailerAan = false; }, 1450);
+  };
+  setTimeout(wacht, 650);
+}
+if (trailer) {
+  if (!trailerAan) trailer.hidden = true; else trailerToon();
+  tv.muted = STIL; tv.volume = 1;
+  $('#trailer-play').addEventListener('click', () => {
+    trailer.classList.add('speelt'); tv.currentTime = 0;
+    const p = tv.play(); if (p && p.catch) p.catch(() => { tv.muted = true; tv.play(); });
+  });
+  $('#trailer-skip').addEventListener('click', () => trailerOpen());
+  $('#trailer-verder').addEventListener('click', () => trailerOpen());
+  tv.addEventListener('timeupdate', () => { if (tv.duration && tv.currentTime > tv.duration - 0.7) trailerOpen(); });
+  tv.addEventListener('ended', () => trailerOpen());
+  const weer = $('#trailer-weer');
+  if (weer) weer.addEventListener('click', () => { voice.stop(); trailerToon(); trailer.classList.add('speelt'); tv.currentTime = 0; tv.play(); });
+}
+
 const pct = $('#laden-pct');
 avatar.load('models/aellia.glb?v=111846', f => { pct.textContent = Math.round(f * 100) + '%'; }).then(async () => {
   document.querySelector('.laden__in p').textContent = 'Fastening her chin strap'; pct.textContent = '';
@@ -492,9 +531,9 @@ avatar.load('models/aellia.glb?v=111846', f => { pct.textContent = Math.round(f 
   let v = 0, j = 0; avatar.root.traverse(o => { if (o.isMesh) v += o.geometry.attributes.position.count; if (o.isBone) j++; });
   specTekst = `${Math.round(v / 1000)}k vertices · ${j.toLocaleString('en')} joints · one skeleton for Unreal, Unity and WebXR.`;
   zetModus('motion'); opSectie(actief);
-  $('#laden').classList.add('is-klaar'); document.body.classList.add('is-geladen');
-  if (!RUST && actief === 'hero' && scrollY < innerHeight * 0.3) { avatar.startIntro(); avatar.update(0); }   // ze staat al buiten beeld; wandelt binnen zodra het laadscherm wegvalt
+  $('#laden').classList.add('is-klaar');
   window.READY = true;
+  if (!trailerAan) siteStart();          // anders start de site pas als de trailer de iris opent
 }).catch(e => { pct.textContent = 'error'; console.error(e); });
 requestAnimationFrame(lus);
 window.__dbg = { avatar, camera, voice, live, scene, renderer, kitDetail, opSectie };
