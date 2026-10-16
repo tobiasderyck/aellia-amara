@@ -8,7 +8,7 @@
 <meta name="description" content="A real-time 3D field technician built for Aellia Academy. She looks, listens and talks back. One master character for slides, video and VR.">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,200..700&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/site.css?v=124511">
+<link rel="stylesheet" href="css/site.css?v=125117">
 <link rel="preload" href="models/aellia.glb?v=111846" as="fetch" crossorigin>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"}}</script>
 </head>
@@ -48,7 +48,7 @@
 
 <header class="nav">
   <a class="nav__merk" href="#top"><span class="nav__dot"></span>Aellia Academy <i>×</i> Pixelshift</a>
-  <nav><a href="#kit">Her kit</a><a href="#onsite">On site</a><a href="#talk">Talk to her</a><a href="#formats">Formats</a><a href="#app">App</a><a class="nav__cta" href="#next">Next step</a></nav>
+  <nav><a href="#kit">Her kit</a><a href="#onsite">On site</a><a href="#talk">Quick check</a><a href="#formats">Formats</a><a href="#app">App</a><a class="nav__cta" href="#next">Next step</a></nav>
 </header>
 
 <main id="top">
@@ -89,21 +89,15 @@
 
   <section class="sec talk" id="talk" data-stage="talk">
     <div class="wrap">
-      <h2>Give her a line.</h2>
-      <p class="lead">Type anything. Her voice is generated live in your browser and her face follows it. No actor, no recording, no cloud service.</p>
-      <form class="paneel" id="talk-form" autocomplete="off">
-        <label for="zin" class="sr">What should she say?</label>
-        <textarea id="zin" maxlength="260" rows="3">Welcome to Aellia Academy. Before you enter the unit, check your gas monitor and fasten your chin strap.</textarea>
-        <div class="chips">
-          <button type="button" data-zin="Hi Sharon. Shall we pick the route for the rest of the cast?">Ask Sharon</button>
-          <button type="button" data-zin="Every shift starts with a toolbox talk. Five minutes that align the team on hazards, permits and the plan for the day.">Toolbox talk</button>
-          <button type="button" data-zin="Great work today. Your leak survey is complete, and every point is logged.">Well done</button>
-        </div>
-        <div class="paneel__voet">
-          <span class="status" id="status">Her voice loads once, about 90 MB.</span>
-          <button class="knop" type="submit" id="say"><span>Say it</span></button>
-        </div>
-      </form>
+      <h2>Quick check.</h2>
+      <p class="lead">This is how she teaches in Academy: a question from the field, your answer, her reaction. Three questions.</p>
+      <div class="paneel quiz" id="quiz">
+        <div class="quiz__kop"><span class="quiz__stap" id="quiz-stap">Toolbox · 3 questions</span><span class="quiz__punten" id="quiz-punten" aria-hidden="true"><i></i><i></i><i></i></span></div>
+        <p class="quiz__vraag" id="quiz-vraag">Ready when you are.</p>
+        <div class="quiz__opties" id="quiz-opties"></div>
+        <p class="quiz__uitleg" id="quiz-uitleg" aria-live="polite"></p>
+        <div class="paneel__voet"><span class="status">Click an answer. She reacts.</span><button class="knop" type="button" id="quiz-knop"><span class="knop__ico" aria-hidden="true"></span><span>Start the quick check</span></button></div>
+      </div>
     </div>
   </section>
 
@@ -229,6 +223,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
 <script src="https://unpkg.com/lenis@1.1.13/dist/lenis.min.js"></script>
-<script type="module" src="js/main.js?v=124511"></script>
+<script type="module" src="js/main.js?v=124909"></script>
 </body>
 </html>

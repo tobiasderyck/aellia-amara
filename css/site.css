@@ -316,8 +316,8 @@ main{z-index:4}
 .tabs button[aria-selected="true"]{background:var(--inkt);color:#fff}
 .tabs button[aria-selected="true"] i{color:var(--mint)}
 .tabs button:active{transform:scale(.97)}
-.paneel{display:none}
-.paneel.is-aan{display:block;animation:paneel .45s var(--ease-uit)}
+.onsite .paneel{display:none}
+.onsite .paneel.is-aan{display:block;animation:paneel .45s var(--ease-uit)}
 @keyframes paneel{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 .jacht{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
 .jacht__status{margin:0;font-size:13.5px;color:var(--inkt-dof);max-width:30ch}
@@ -427,3 +427,24 @@ body.trailer-aan{overflow:hidden}
 .zeg__status{min-height:1.4em;margin:12px 0 0;font-size:12.5px;color:var(--inkt-dof)}
 .zeg__status.is-klaar{color:var(--mint-diep)}
 .hero .link--knop{margin:6px 0 0;display:inline-block}
+
+/* quick check */
+.quiz{max-width:480px}
+.quiz__kop{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.quiz__stap{font:600 12px/1 var(--tekst);color:var(--inkt-dof)}
+.quiz__punten{display:flex;gap:6px}
+.quiz__punten i{width:10px;height:10px;border-radius:50%;box-shadow:inset 0 0 0 1.5px rgba(19,18,38,.25);transition:background .25s var(--ease-uit),box-shadow .25s}
+.quiz__punten i.is-goed{background:var(--mint);box-shadow:none}
+.quiz__punten i.is-fout{background:#e2603f;box-shadow:none}
+.quiz__vraag{font:400 clamp(20px,1.8vw,26px)/1.3 var(--display);letter-spacing:-.01em;margin:0 0 18px;min-height:2.6em}
+.quiz__opties{display:grid;gap:8px;margin-bottom:12px}
+.quiz__opties button{text-align:left;border:1px solid var(--lijn);background:rgba(255,255,255,.7);border-radius:12px;padding:13px 16px;font:500 14px/1.35 var(--tekst);color:var(--inkt);cursor:inherit;
+  transition:border-color .18s var(--ease-uit),background .18s var(--ease-uit),transform .12s var(--ease-uit);opacity:0;transform:translateY(6px);animation:optie .4s var(--ease-uit) forwards}
+.quiz__opties button:nth-child(2){animation-delay:.06s}.quiz__opties button:nth-child(3){animation-delay:.12s}
+@keyframes optie{to{opacity:1;transform:none}}
+.quiz__opties button:hover:not(:disabled){border-color:var(--inkt)}
+.quiz__opties button:active:not(:disabled){transform:scale(.98)}
+.quiz__opties button.is-goed{border-color:var(--mint-diep);background:rgba(0,244,205,.16)}
+.quiz__opties button.is-fout{border-color:#e2603f;background:rgba(226,96,63,.1)}
+.quiz__opties button:disabled{cursor:default}
+.quiz__uitleg{min-height:1.4em;font-size:13.5px;color:var(--inkt-dof);margin:0 0 6px}

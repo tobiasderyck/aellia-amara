@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-import { Avatar } from './avatar.js?v=114010';
+import { Avatar } from './avatar.js?v=124856';
 import { Voice, LiveTTS } from './voice.js?v=124511';
 
 const Q = new URLSearchParams(location.search);
@@ -199,14 +199,14 @@ introBtn.addEventListener('click', async () => {
 });
 voice.onstate = s => {
   introBtn.classList.toggle('is-spreekt', s === 'speaking');
-  $('#say').disabled = s === 'thinking'; $('#hero-say').disabled = s === 'thinking';
+  $('#hero-say').disabled = s === 'thinking';
   if (s === 'thinking') status('Finding her words… she speaks when the whole line is ready.');
-  else if (live.ready) status('Ready. Type and press “Say it”.', true);
+  else if (live.ready) status('Ready. Type a line and press Enter.', true);
 };
 const statusEl = $('#status'), heroStatus = $('#hero-status');
 function status(t, ok) { for (const el of [statusEl, heroStatus]) { if (!el) continue; el.textContent = t; el.classList.toggle('is-klaar', !!ok); } }
 live.onprogress = (f, total) => status(`Loading her voice · ${Math.round(f * 100)}% of ${Math.round(total / 1e6)} MB`);
-live.onready = dev => status(`Ready${dev === 'webgpu' ? ' · WebGPU' : ''}. Type and press “Say it”.`, true);
+live.onready = dev => status(`Ready${dev === 'webgpu' ? ' · WebGPU' : ''}. Type a line and press Enter.`, true);
 live.onerror = m => status('Her voice could not load here. Try Chrome or Edge on desktop.');
 // vooraf opgenomen zinnen (stem + MetaHuman Animator-gezicht): spelen meteen, zonder het stemmodel te laden
 const VOORAF = {
@@ -216,8 +216,6 @@ const VOORAF = {
   'Great work today. Your leak survey is complete, and every point is logged.': 'talk-welldone',
 };
 const norm = t => t.replace(/\s+/g, ' ').trim();
-$('#zin').addEventListener('focus', () => live.preload());
-$$('.chips button').forEach(c => c.addEventListener('click', () => { $('#zin').value = c.dataset.zin; }));
 function zeg(t) {
   t = (t || '').trim(); if (!t) return;
   kijkNaar = null;
@@ -225,7 +223,58 @@ function zeg(t) {
   if (!live.ready) status('Loading her voice once (about 90 MB), then she says it…');
   live.speak(t);
 }
-$('#talk-form').addEventListener('submit', e => { e.preventDefault(); zeg($('#zin').value); });
+// ---------- quick check: vraag, jouw antwoord, haar reactie ----------
+const QUIZ = [
+  { a: 'quiz-q1', vraag: 'Before you enter the unit, what do you check first?', opties: [['Bump-test my gas monitor', 1], ['Check that my phone has signal', 0], ['Look at the wind sock, nothing else', 0]],
+    goed: 'A bump test proves the monitor really reacts to gas.', fout: 'First the bump test: it proves the monitor really reacts to gas.' },
+  { a: 'quiz-q2', vraag: 'Your monitor alarms at 10% LEL. What do you do?', opties: [['Finish the reading, then leave', 0], ['Leave the area upwind and report it', 1], ['Restart the monitor', 0]],
+    goed: 'Leave upwind, then report. The reading can wait.', fout: 'At an alarm you leave upwind first and report. The reading can wait.' },
+  { a: 'quiz-q3', vraag: 'You find a leaking flange. What happens next?', opties: [['Tighten it myself, on the spot', 0], ['Ignore it if it is small', 0], ['Measure it, tag it and log it', 1]],
+    goed: 'Measure, tag, log: the repair gets planned.', fout: 'You don’t fix it yourself. Measure, tag and log it so the repair gets planned.' },
+];
+const qz = { i: -1, score: 0, bezig: false };
+const qVraag = $('#quiz-vraag'), qOpties = $('#quiz-opties'), qUitleg = $('#quiz-uitleg'), qKnop = $('#quiz-knop'), qStap = $('#quiz-stap'), qPunten = $$('#quiz-punten i');
+const zegt = async naam => { kijkNaar = null; await voice.playUrl(`audio/${naam}.mp3`); await new Promise(r => { const f = () => voice.playing ? setTimeout(f, 120) : r(); setTimeout(f, 200); }); };
+const knopTekst = t => { qKnop.querySelector('span:last-child').textContent = t; };
+async function quizVraag() {
+  const q = QUIZ[qz.i]; qStap.textContent = `Question ${qz.i + 1} of ${QUIZ.length}`;
+  qVraag.textContent = q.vraag; qUitleg.textContent = ''; qOpties.innerHTML = ''; qKnop.hidden = true;
+  q.opties.forEach(([t, goed]) => {
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = t;
+    b.addEventListener('click', () => quizAntwoord(b, !!goed));
+    qOpties.appendChild(b);
+  });
+  zegt(q.a);
+}
+async function quizAntwoord(b, goed) {
+  if (qz.bezig) return; qz.bezig = true; voice.stop();
+  const q = QUIZ[qz.i];
+  $$('#quiz-opties button').forEach(x => { x.disabled = true; });
+  b.classList.add(goed ? 'is-goed' : 'is-fout');
+  if (!goed) $$('#quiz-opties button').forEach((x, k) => { if (q.opties[k][1]) x.classList.add('is-goed'); });
+  qPunten[qz.i].classList.add(goed ? 'is-goed' : 'is-fout'); if (goed) qz.score++;
+  qUitleg.textContent = goed ? q.goed : q.fout;
+  if (goed) avatar.ja(); else avatar.nee();
+  await zegt(`${q.a}-${goed ? 'goed' : 'fout'}`);
+  qz.bezig = false;
+  if (qz.i < QUIZ.length - 1) { qKnop.hidden = false; knopTekst('Next question'); }
+  else {
+    qStap.textContent = `${qz.score} of ${QUIZ.length} right`;
+    qVraag.textContent = qz.score === QUIZ.length ? 'Ready for the unit.' : 'Good effort. Once more on site.';
+    qOpties.innerHTML = ''; qKnop.hidden = false; knopTekst('Try again');
+    if (qz.score === QUIZ.length) avatar.ja();
+    zegt(qz.score === QUIZ.length ? 'quiz-einde-top' : 'quiz-einde');
+    qz.i = QUIZ.length;
+  }
+}
+qKnop.addEventListener('click', async () => {
+  if (qz.bezig) return;
+  if (qz.i === -1 || qz.i >= QUIZ.length) {
+    qz.i = 0; qz.score = 0; qPunten.forEach(p => p.classList.remove('is-goed', 'is-fout'));
+    qz.bezig = true; qVraag.textContent = 'Three questions, straight from the field.'; qOpties.innerHTML = ''; qKnop.hidden = true;
+    await zegt('quiz-intro'); qz.bezig = false; quizVraag();
+  } else { qz.i++; quizVraag(); }
+});
 $('#hero-zin').addEventListener('focus', () => live.preload());
 $('#hero-zeg').addEventListener('submit', e => { e.preventDefault(); zeg($('#hero-zin').value); });
 

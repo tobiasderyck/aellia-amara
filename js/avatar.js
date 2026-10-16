@@ -314,11 +314,13 @@ roughnessFactor = mix(roughnessFactor, 0.6, nieuwBand);`);
     const hd = mha ? mha.headAt(this.faceT || 0) : null, D = Math.PI / 180;    // hoofdcurves uit MHA, gedempt bijgemengd
     this._yaw = damp(this._yaw || 0, yaw + (hd ? hd.yaw * D * 0.45 : 0), 4, dt); this._pitch = damp(this._pitch || 0, pitch + (hd ? -hd.pitch * D * 0.45 : 0), 4, dt);
     const nod = this.knik.step(dt), tilt = this.kanteling.step(dt) + (hd ? hd.roll * D * 0.4 : 0);
+    let schud = 0;                                   // 'nee': kort, licht hoofdschudden
+    if (this._schud != null) { const u = this.t - this._schud; if (u < 1.15) schud = 0.13 * Math.sin(u * Math.PI * 2 * 2.3) * (1 - u / 1.15); else this._schud = null; }
     for (const [bn, k] of [['neck_02', 0.4], ['head', 0.6]]) {
       const b = B[bn]; if (!b) continue;
-      const qy = _q2.setFromAxisAngle(V(0, 1, 0), this._yaw * k);
+      const qy = _q2.setFromAxisAngle(V(0, 1, 0), (this._yaw + schud) * k);
       b.getWorldQuaternion(_q); _q.premultiply(qy);
-      const qx = new THREE.Quaternion().setFromAxisAngle(V(1, 0, 0).applyQuaternion(_q2.setFromAxisAngle(V(0, 1, 0), this._yaw * k)), (this._pitch + nod) * k);
+      const qx = new THREE.Quaternion().setFromAxisAngle(V(1, 0, 0).applyQuaternion(_q2.setFromAxisAngle(V(0, 1, 0), (this._yaw + schud) * k)), (this._pitch + nod) * k);
       _q.premultiply(qx);
       _q.premultiply(new THREE.Quaternion().setFromAxisAngle(V(0, 0, 1), tilt * k));
       b.parent.getWorldQuaternion(_q2).invert(); b.quaternion.copy(_q2.multiply(_q)); b.updateMatrixWorld(true);
@@ -595,6 +597,9 @@ roughnessFactor = mix(roughnessFactor, 0.6, nieuwBand);`);
     return S.add(V(-0.20 - 0.065 * sw, 0.27 - 0.02 * Math.abs(sw), 0.13).applyAxisAngle(V(0, 1, 0), r));
   }
   get inIntro() { return !!this.intro; }
+  // reacties voor de quick check
+  ja() { this.knik.v += 1.7; setTimeout(() => { this.knik.v += 1.3; }, 360); this.mouth.smile = 0.95; clearTimeout(this._lachT); this._lachT = setTimeout(() => { this.mouth.smile = 0.62; }, 2600); this._zet('klaar'); }
+  nee() { this._schud = this.t; this.kanteling.doel = 0.05; setTimeout(() => { this.kanteling.doel = 0; }, 1400); this.mouth.smile = 0.25; clearTimeout(this._lachT); this._lachT = setTimeout(() => { this.mouth.smile = 0.62; }, 2600); }
   // handen voor zich gevouwen (rechter over linker), botsingsvrij via de aanraak-IK
   vouw(aan) {
     if (!aan) { if (this._gevouwen) { this.reik('R', null); this.reik('L', null); } this._gevouwen = false; return; }
