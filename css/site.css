@@ -455,13 +455,12 @@ body.trailer-aan{overflow:hidden}
 /* slot: licht uit, haar lamp aan */
 .slot-knop{display:block;margin:22px 0 0}
 html,body{transition:background-color .7s var(--ease-uit)}
-body.licht-uit,html.licht-uit{background:#0b0b11}
-body.licht-uit .licht,body.licht-uit .korrel{opacity:0;transition:opacity .7s}
-body.licht-uit #dots{opacity:.12;transition:opacity .7s}
-body.licht-uit .next h2,body.licht-uit .next .lead,body.licht-uit .next .link,body.licht-uit .sign,body.licht-uit .credits,body.licht-uit .sign a,body.licht-uit .credits a{color:rgba(255,255,255,.86);transition:color .7s}
-body.licht-uit .next .lead,body.licht-uit .sign,body.licht-uit .credits{color:rgba(255,255,255,.55)}
+body.licht-uit,html.licht-uit{background:#060609;transition:background .25s}
+body.licht-uit .licht,body.licht-uit .korrel,body.licht-uit #dots{opacity:0;transition:opacity .25s}
+/* licht uit: enkel de titel licht op, de rest valt weg in het donker (hover haalt het terug) */
+body.licht-uit .next h2{color:#fff8ec;text-shadow:0 0 18px rgba(255,236,206,.45),0 0 60px rgba(255,214,160,.22);transition:color .5s,text-shadow .9s}
+body.licht-uit .next .lead,body.licht-uit .next .acties,body.licht-uit .next .sign,body.licht-uit .next .credits,body.licht-uit .nav{opacity:.06;transition:opacity .3s}
+body.licht-uit .next .acties:hover,body.licht-uit .next .acties:focus-within,body.licht-uit .nav:hover,body.licht-uit .nav:focus-within{opacity:1;transition:opacity .25s}
+body.licht-uit .next .link,body.licht-uit .nav a,body.licht-uit .nav__merk{color:rgba(255,255,255,.85)}
 body.licht-uit .nav{background:rgba(20,20,30,.55);border-color:rgba(255,255,255,.12)}
-body.licht-uit .nav a,body.licht-uit .nav__merk{color:rgba(255,255,255,.8)}
-body.licht-uit .next .knop{background:var(--mint);color:var(--inkt);box-shadow:0 0 0 0 rgba(0,244,205,.6),0 0 40px 6px rgba(0,244,205,.35);animation:gloei 1.8s var(--ease-uit) infinite}
-@keyframes gloei{0%{box-shadow:0 0 0 0 rgba(0,244,205,.55),0 0 40px 6px rgba(0,244,205,.3)}100%{box-shadow:0 0 0 18px rgba(0,244,205,0),0 0 40px 6px rgba(0,244,205,.3)}}
 body.licht-uit .slot-knop{opacity:0;pointer-events:none}

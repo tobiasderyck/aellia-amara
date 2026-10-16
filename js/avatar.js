@@ -10,8 +10,13 @@ const _q = new THREE.Quaternion(), _q2 = new THREE.Quaternion(), _v = V(), _v2 =
 const damp = (a, b, k, dt) => a + (b - a) * (1 - Math.exp(-k * dt));
 // kritisch-gedempte veer (licht onderdempt): natuurlijke aanzet en uitloop, geen sinusbeweging
 class Veer {
-  constructor(k = 55, z = 0.78) { this.k = k; this.c = 2 * Math.sqrt(k) * z; this.x = 0; this.v = 0; this.doel = 0; }
-  step(dt) { const n = Math.ceil(dt / 0.008), h = dt / n; for (let i = 0; i < n; i++) { this.v += (this.k * (this.doel - this.x) - this.c * this.v) * h; this.x += this.v * h; } return this.x; }
+  constructor(k = 55, z = 0.78) { this.k = k; this.c = 2 * Math.sqrt(k) * z; this.x = 0; this.v = 0; this.doel = 0; this.ds = 0; }
+  // het doel glijdt zelf ook (~70 ms): een nieuwe beweging start zacht, zonder schok in de versnelling
+  step(dt) {
+    const n = Math.ceil(dt / 0.008), h = dt / n, a = 1 - Math.exp(-14 * h);
+    for (let i = 0; i < n; i++) { this.ds += (this.doel - this.ds) * a; this.v += (this.k * (this.ds - this.x) - this.c * this.v) * h; this.x += this.v * h; }
+    return this.x;
+  }
 }
 const GEBAAR = {   // per arm: schouder vooruit (uF), opzij (uA), elleboog (eF), handpalm omhoog (sup), pols (wE)
   rust:     { R: {}, L: { uA: 0.09 } },     // linkerarm vrij van de gasmeter
@@ -80,6 +85,8 @@ export class Avatar {
     this.arm = {}; for (const z of ['R', 'L']) for (const k of ['uF', 'uA', 'uR', 'eF', 'sup', 'wE', 'fo']) this.arm[z + k] = new Veer(48, 0.8);
     this.intro = null;   // { fase, t } — binnenwandelen, omdraaien, zwaaien
     this.ik = { R: { doel: null, w: new Veer(30, 0.95) }, L: { doel: null, w: new Veer(30, 0.95) } };   // hand naar een punt
+    this.greep = { R: new Veer(40, 0.95), L: new Veer(40, 0.95) };   // 0 = open hand, 1 = vuist
+    this._kick = { ReF: 0, RwE: 0, LeF: 0, LwE: 0, knik: 0 };
     this.knik = new Veer(90, 0.55); this.kanteling = new Veer(20, 0.9); this.leun = new Veer(12, 1);
     this._gebaar = 'rust'; this._gebaarTot = 0; this._vorig = '';
     this.look = V(0, 1.55, 3);          // wereldpunt waar ze naar kijkt
@@ -144,6 +151,14 @@ export class Avatar {
     this._headRest = this.bones.head.getWorldQuaternion(new THREE.Quaternion()).invert();
     this.vingers = { r: [], l: [] };
     scene.traverse(o => { const m = o.isBone && /^(thumb|index|middle|ring|pinky)_0[123]_(r|l)$/.exec(o.name); if (m) this.vingers[m[2]].push([o, o.quaternion.clone()]); });
+    // vuist: lokale z-as krult de vinger naar de handpalm (gemeten); kootjes 01/02/03 buigen 70°/85°/50°
+    this._vuist = { r: [], l: [] };
+    const KROM = { '01': 1.2, '02': 1.45, '03': 0.85 }, DUIM = { '02': 0.35, '03': 0.6 };
+    for (const lo of ['r', 'l']) for (const [b] of this.vingers[lo]) {
+      const [, f, k] = /^(thumb|index|middle|ring|pinky)_0([123])/.exec(b.name), kk = '0' + k;
+      const hoek = f === 'thumb' ? (DUIM[kk] || 0) : KROM[kk] * (f === 'pinky' ? 1.05 : 1);
+      if (hoek) this._vuist[lo].push([b, { as: f === 'thumb' ? this._duimAs || V(0, 0, 1) : V(0, 0, 1), hoek }]);
+    }
     this._rest = {};
     for (const [n, b] of Object.entries(this.bones)) if (b) this._rest[n] = { p: b.position.clone(), q: b.quaternion.clone() };
     this.face = new FaceAnimator(scene);          // MetaHuman Animator-gezicht voor vooraf opgenomen zinnen
@@ -274,6 +289,7 @@ roughnessFactor = mix(roughnessFactor, 0.6, nieuwBand);`);
   }
 
   update(dt) {
+    this._dt = dt;
     if (!this.mixer) return;
     this.t += dt;
     if (this.intro) this._introStap(dt);
@@ -392,19 +408,21 @@ roughnessFactor = mix(roughnessFactor, 0.6, nieuwBand);`);
     this.speaking = damp(this.speaking, this._speakTarget || 0, 2.5, dt);
     if (!this.intro && !this._speakTarget && this._gebaar !== 'rust' && this.t > this._gebaarTot && !this.ik.R.doel && !this.ik.L.doel) this._zet('rust');
     if (this._speakTarget && this.t > this._gebaarTot && this._gebaar !== 'klaar') this._zet('klaar');
+    // beat-impulsen over ~60 ms uitsmeren: geen tik van het ene beeld op het andere
+    for (const k in this._kick) { const p = this._kick[k] * (1 - Math.exp(-dt / 0.06)); (k === 'knik' ? this.knik : this.arm[k]).v += p; this._kick[k] -= p; }
     for (const k in this.arm) this.arm[k].step(dt);
     this.leun.doel = 0.035 * this.speaking; const leun = this.leun.step(dt);
     const BX = V(1, 0, 0), BY = V(0, 1, 0), BZ = V(0, 0, 1);
     this._rotLocalWorld(B.spine_03, BX, leun);
     if (this._dans) {                                  // klein, professioneel blij dansje: heupwiegen in de romp + schouders
-      const u = this.t - this._dans.t0, D_ = this._dans.dur, env = Math.min(1, u / 0.4) * Math.min(1, Math.max(0, (D_ - u) / 0.5));
+      const u = this.t - this._dans.t0, D_ = this._dans.dur, zs = x => { x = Math.min(1, Math.max(0, x)); return x * x * x * (x * (6 * x - 15) + 10); }, env = zs(u / 0.5) * zs((D_ - u) / 0.6);
       if (u > D_) this._dans = null;
       else {
         const r = this.root.rotation.y, fw = V(0, 0, 1).applyAxisAngle(BY, r), zij = V(1, 0, 0).applyAxisAngle(BY, r);
         this._rotLocalWorld(B.spine_03, fw, 0.06 * Math.sin(u * Math.PI * 2 * 1.7) * env);
         this._rotLocalWorld(B.spine_03, BY, 0.05 * Math.sin(u * Math.PI * 2 * 0.85) * env);
-        this._rotLocalWorld(B.spine_05, zij, 0.03 * Math.abs(Math.sin(u * Math.PI * 2 * 1.7)) * env);
-        if (Math.floor(u * 3.4) !== this._dans.tel) { this._dans.tel = Math.floor(u * 3.4); this.knik.v += 0.45 * env; }
+        this._rotLocalWorld(B.spine_05, zij, 0.03 * Math.sin(u * Math.PI * 2 * 1.7) ** 2 * env);   // sin² i.p.v. |sin|: geen knik bij elke tel
+        if (Math.floor(u * 3.4) !== this._dans.tel) { this._dans.tel = Math.floor(u * 3.4); this._kick.knik += 0.45 * env; }
       }
     }
     for (const z of ['R', 'L']) {
@@ -426,24 +444,38 @@ roughnessFactor = mix(roughnessFactor, 0.6, nieuwBand);`);
       if (fo > 0.01) for (const [b, q0] of this.vingers[lo]) b.quaternion.slerp(q0, fo);
     }
     for (const z of ['R', 'L']) {
-      const I = this.ik[z], w = I.w.step(dt);
-      if (w > 0.01 && I.doel) {
-        let d = typeof I.doel === 'function' ? I.doel() : I.doel, richt = null;
-        if (d && d.tip) {                           // aanraken: vingertoppen op het punt, pols een handlengte ervoor
-          this.ik[z].pole = d.pole || null; this.ik[z].palm = d.palm || null;
+      const I = this.ik[z]; if (!I.doel) I.w.doel = 0;
+      const w = I.w.step(dt), f = 1 - Math.exp(-dt * 6);
+      if (w > 0.001 && (I.doel || I.laatst)) {
+        let d, richt = null;
+        if (!I.doel) { d = I.laatst.d; richt = I.laatst.richt; }   // loslaten: laatste doel vasthouden en het gewicht laten uitdoven
+        else d = typeof I.doel === 'function' ? I.doel() : I.doel;
+        if (I.doel && d && d.tip) {                 // aanraken: vingertoppen op het punt, pols een handlengte ervoor
+          // elleboogpool, handpalm en handrichting glijden naar hun nieuwe stand (nooit verspringen)
+          I.pole = d.pole ? (I.pole ? I.pole.clone().lerp(d.pole, f) : d.pole.clone()) : null;
+          I.palm = d.palm ? (I.palm ? I.palm.clone().lerp(d.palm, f) : d.palm.clone()) : null;
           richt = d.a.clone().normalize();
+          if (I.richtS) richt = I.richtS.lerp(richt, f).normalize();
+          I.richtS = richt.clone();
           d = d.tip.clone().addScaledVector(richt, -(d.hand ?? 0.15));
           if (I.start) {                            // boog naar buiten-voren, nooit dwars door het lichaam
-            const k = Math.min(1, (this.t - I.t0) / 0.95), e = k * k * (3 - 2 * k);
+            const k = Math.min(1, (this.t - I.t0) / 0.95), e = k * k * k * (k * (6 * k - 15) + 10);   // quintisch: start en landt zonder schok
             const r = this.root.rotation.y, uit = V(z === 'R' ? -1 : 1, 0, 0).applyAxisAngle(V(0, 1, 0), r);
             const voor = V(0, 0, 1).applyAxisAngle(V(0, 1, 0), r);
             const c = I.start.clone().lerp(d, 0.5).addScaledVector(uit, 0.16).addScaledVector(voor, 0.2);
             const a1 = I.start.clone().lerp(c, e), a2 = c.clone().lerp(d, e); d = a1.lerp(a2, e);
           }
         }
+        if (!d) continue;
+        if (I.doel) I.laatst = { d: d.clone(), richt: richt && richt.clone() };
         if (richt) this._reikVrij(z, d, Math.min(1, w), richt);    // aanraken: nooit in helm, hoofd, oorkap of romp
         else this._reik(z, d, Math.min(1, w), richt);
-      }
+      } else if (!I.doel && w <= 0.001 && I.laatst) { I.laatst = null; I.richtS = null; I.pole = null; I.palm = null; I.vrijT = null; }
+    }
+    // vuist: vingers krullen om iets heen (koord), na de IK zodat de greep blijft staan
+    for (const z of ['R', 'L']) {
+      const k = this.greep[z].step(dt); if (k < 0.005) continue;
+      for (const [b, a] of this._vuist[z.toLowerCase()]) b.quaternion.multiply(_q.setFromAxisAngle(a.as, a.hoek * k));
     }
   }
   // botsingsvormen (wereld): ellipsoïden rond helm, hoofd, oorkappen, nek en romp
@@ -497,7 +529,7 @@ roughnessFactor = mix(roughnessFactor, 0.6, nieuwBand);`);
     // vloeiend: het gecorrigeerde doel glijdt (geen sprongen van beeld tot beeld)
     const I = this.ik[z];
     if (I.vrijT && I.vrijT.distanceTo(T) < 0.25) {
-      I.vrijT.lerp(T, 0.18);
+      I.vrijT.lerp(T, 1 - Math.exp(-12 * (this._dt || 1 / 60)));   // tijdgebaseerd: gelijk bij elke beeldsnelheid
       L.forEach((b, i) => b.quaternion.copy(bewaar[i])); this.vingers[lo].forEach(([b], i) => b.quaternion.copy(vingers[i]));
       L[0].updateMatrixWorld(true); this._reik(z, I.vrijT, w, richt);
     } else I.vrijT = T.clone();
@@ -549,11 +581,25 @@ roughnessFactor = mix(roughnessFactor, 0.6, nieuwBand);`);
   }
   // hand naar iets brengen (fn of Vector3), duur in s; null = loslaten
   reik(z, doel, duur = 0) {
-    const I = this.ik[z]; I.doel = doel; I.w.doel = doel ? 1 : 0;
-    I.t0 = this.t; I.start = doel ? this.bones['hand_' + z.toLowerCase()].getWorldPosition(V()) : null;
-    if (!doel && I.pole && !this.intro) I.pole = null;
-    I.vrijT = null;
-    clearTimeout(I.t); if (doel && duur) I.t = setTimeout(() => { I.w.doel = 0; }, duur * 1000);
+    const I = this.ik[z]; clearTimeout(I.t);
+    I.doel = doel; I.w.doel = doel ? 1 : 0;          // null: het laatste doel blijft staan tot het gewicht uitgedoofd is
+    if (!doel) return;
+    I.t0 = this.t; I.start = this.bones['hand_' + z.toLowerCase()].getWorldPosition(V());
+    if (duur) I.t = setTimeout(() => { I.w.doel = 0; }, duur * 1000);
+  }
+  // hand sluiten om iets heen (k 0..1)
+  vuist(z, k) { this.greep[z].doel = k; }
+  // greeppunt (wereld): midden in de gesloten hand
+  greepPunt(z) {
+    const lo = z.toLowerCase(), g = this.gltf.scene, P = n => g.getObjectByName(n).getWorldPosition(V());
+    // onafhankelijk van het krullen: knokkels, een fractie naar de pols en twee cm de handpalm in
+    const k = P('index_01_' + lo).add(P('middle_01_' + lo)).add(P('ring_01_' + lo)).multiplyScalar(1 / 3);
+    const pols = this.bones['hand_' + lo].getWorldPosition(V()).sub(k).normalize();
+    return k.addScaledVector(pols, 0.008).add(this._palmNormaal(lo).multiplyScalar(0.022));
+  }
+  _palmNormaal(lo) {
+    const g = this.gltf.scene, P = n => g.getObjectByName(n).getWorldPosition(V()), h = this.bones['hand_' + lo].getWorldPosition(V());
+    return V().crossVectors(P('index_01_' + lo).sub(h), P('pinky_01_' + lo).sub(h)).normalize().multiplyScalar(lo === 'r' ? 1 : -1);
   }
   // punt op het lichaam (wereld) voor aanraakacties
   // aanraakpunt (wereld): tip = waar de vingertoppen komen, a = richting pols -> vingers
@@ -598,7 +644,7 @@ roughnessFactor = mix(roughnessFactor, 0.6, nieuwBand);`);
     } else if (I.fase === 'zwaai') {              // kort, casual: twee, drie slagen
       this._zwaai = Math.min(1, I.t / 0.35) * Math.max(0, Math.min(1, (1.75 - I.t) / 0.35));
       if (I.t > 1.6 && this.ik.R.doel) this.ik.R.w.doel = 0;           // hand laten zakken
-      if (I.t > 1.9) { I.fase = 'klaar'; this._zet('rust'); this._zwaai = 0; this.ik.R.doel = null; this.ik.R.pole = null; }
+      if (I.t > 1.9) { I.fase = 'klaar'; this._zet('rust'); this._zwaai = 0; this.reik('R', null); }
     } else if (I.fase === 'klaar') { if (I.t > 2.6) { this.intro = null; this.mouth.smile = 0.62; } }
   }
   // handpositie tijdens het zwaaien: naast het hoofd, onderarm zwiept vanuit de elleboog
@@ -610,7 +656,7 @@ roughnessFactor = mix(roughnessFactor, 0.6, nieuwBand);`);
   get inIntro() { return !!this.intro; }
   dans(dur = 2.4) { this._dans = { t0: this.t, dur, tel: -1 }; this._zet('klaar'); this.mouth.smile = 0.95; clearTimeout(this._lachT); this._lachT = setTimeout(() => { this.mouth.smile = 0.62; }, (dur + 1) * 1000); }
   // reacties voor de quick check
-  ja() { this.knik.v += 1.7; setTimeout(() => { this.knik.v += 1.3; }, 360); this.mouth.smile = 0.95; clearTimeout(this._lachT); this._lachT = setTimeout(() => { this.mouth.smile = 0.62; }, 2600); this._zet('klaar'); }
+  ja() { this._kick.knik += 1.7; setTimeout(() => { this._kick.knik += 1.3; }, 360); this.mouth.smile = 0.95; clearTimeout(this._lachT); this._lachT = setTimeout(() => { this.mouth.smile = 0.62; }, 2600); this._zet('klaar'); }
   nee() { this._schud = this.t; this.kanteling.doel = 0.05; setTimeout(() => { this.kanteling.doel = 0; }, 1400); this.mouth.smile = 0.25; clearTimeout(this._lachT); this._lachT = setTimeout(() => { this.mouth.smile = 0.62; }, 2600); }
   // handen voor zich gevouwen (rechter over linker), botsingsvrij via de aanraak-IK
   vouw(aan) {
@@ -636,8 +682,8 @@ roughnessFactor = mix(roughnessFactor, 0.6, nieuwBand);`);
   // beklemtoonde lettergreep: korte neerwaartse slag van de actieve hand + knikje
   onBeat() {
     const G = GEBAAR[this._gebaar] || {};
-    for (const z of ['R', 'L']) if ((G[z] || {}).eF > 0.5) { this.arm[z + 'eF'].v -= 2.0; this.arm[z + 'wE'].v += 1.4; }
-    this.knik.v += 0.75 + Math.random() * 0.4;
+    for (const z of ['R', 'L']) if ((G[z] || {}).eF > 0.5 && this.ik[z].w.x < 0.02) { this._kick[z + 'eF'] -= 2.0; this._kick[z + 'wE'] += 1.4; }   // geen tik in een arm die iets vastpakt
+    this._kick.knik += 0.75 + Math.random() * 0.4;
     if (Math.random() < 0.55) this._browKick = Math.min(0.9, (this._browKick || 0) + 0.55);
   }
   _rotLocalWorld(bone, axis, ang) {

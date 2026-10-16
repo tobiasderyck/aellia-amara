@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-import { Avatar } from './avatar.js?v=180047';
+import { Avatar } from './avatar.js?v=184020';
 import { Voice, LiveTTS } from './voice.js?v=124511';
 
 const Q = new URLSearchParams(location.search);
@@ -450,37 +450,78 @@ const peer = new THREE.Mesh(new THREE.SphereGeometry(0.038, 24, 16), new THREE.M
 peer.position.copy(LAMP).add(new THREE.Vector3(0, -0.035, 0)); lamp.add(peer);
 const koord = new THREE.Mesh(new THREE.CylinderGeometry(0.0018, 0.0018, 1, 6), new THREE.MeshStandardMaterial({ color: 0xd9d4c8, roughness: 0.8 })); lamp.add(koord);
 const bol = new THREE.Mesh(new THREE.SphereGeometry(0.011, 16, 12), new THREE.MeshStandardMaterial({ color: 0xb08d4a, metalness: 0.9, roughness: 0.3 })); lamp.add(bol);
-const lampLicht = new THREE.SpotLight(0xffd8a6, 0, 6, 0.75, 0.55, 1.6); lampLicht.position.copy(LAMP); lampLicht.target.position.set(0.0, 0.9, 0.2); lamp.add(lampLicht, lampLicht.target);
-const KOORD_X = LAMP.x + 0.1, KOORD_Z = LAMP.z + 0.02; let koordTrek = 0;
+// trekkoord: van de schakelaar onder de kap naar het kraaltje; in de hand volgt het de vuist, losgelaten veert het terug en slingert uit
+const KOORD_TOP = new THREE.Vector3(LAMP.x + 0.1, LAMP.y - 0.07, LAMP.z + 0.02), KOORD_RUST = new THREE.Vector3(LAMP.x + 0.1, 1.6, LAMP.z + 0.02);
+const koordB = KOORD_RUST.clone(), koordUit = new THREE.Vector3(), koordV = new THREE.Vector3();
+let vastK = 0, vastDoel = 0;                 // 0 = hangt vrij, 1 = zit in haar vuist
+const GREEP_BOVEN = 0.03;                    // ze pakt het koord 3 cm boven het kraaltje
+const _ky = new THREE.Vector3(0, 1, 0);
 function zetKoord() {
-  const y0 = LAMP.y - 0.07, y1 = 1.6 - koordTrek;
-  koord.scale.y = y0 - y1; koord.position.set(KOORD_X, (y0 + y1) / 2, KOORD_Z); bol.position.set(KOORD_X, y1 - 0.01, KOORD_Z);
+  const d = bol.position.copy(koordB).sub(KOORD_TOP), len = d.length();
+  koord.scale.y = len; koord.position.copy(KOORD_TOP).addScaledVector(d, 0.5);
+  koord.quaternion.setFromUnitVectors(_ky, d.normalize()); bol.position.copy(koordB);
 }
 zetKoord();
+const greepDoel = { pull: 0, corr: new THREE.Vector3(), aan: false, anim: null };
+function greepG0() { return KOORD_RUST.clone().add(new THREE.Vector3(0, GREEP_BOVEN - greepDoel.pull, 0)); }
+function koordStap(dt) {
+  const A = greepDoel.anim;
+  if (A) { A.t += dt; const k = Math.min(1, A.t / A.dur); greepDoel.pull = A.van + (A.naar - A.van) * zacht(k); if (k >= 1) { greepDoel.anim = null; A.r(); } }
+  const wasVast = vastK > 0.002;
+  vastK = vastDoel ? damp(vastK, 1, 14, dt) : 0;   // loslaten = vuist open: het koord schiet meteen terug
+  if (greepDoel.aan) {                         // gesloten regeling: de echte greep landt exact op het koord
+    const fout = greepG0().sub(avatar.greepPunt('R'));
+    greepDoel.corr.addScaledVector(fout, Math.min(1, dt * 3)); if (greepDoel.corr.length() > 0.07) greepDoel.corr.setLength(0.07);
+  }
+  if (vastK > 0.002) {
+    const inHand = avatar.greepPunt('R').add(new THREE.Vector3(0, -GREEP_BOVEN, 0));
+    koordB.copy(KOORD_RUST).lerp(inHand, vastK); koordUit.set(0, 0, 0); koordV.set(0, 0, 0);
+  } else if (wasVast) { koordUit.copy(koordB).sub(KOORD_RUST); koordV.set(0, 0, 0); zetKoord();
+  } else {                                     // vrij: veer terug naar rust en slinger licht uit
+    const n = Math.ceil(dt / 0.008), h = dt / n;
+    for (let i = 0; i < n; i++) { koordV.addScaledVector(koordUit, -55 * h).multiplyScalar(1 - 2.2 * h); koordUit.addScaledVector(koordV, h); }
+    koordB.copy(KOORD_RUST).add(koordUit);
+  }
+  zetKoord();
+}
+const lampLicht = new THREE.SpotLight(0xffd8a6, 0, 6, 0.75, 0.55, 1.6); lampLicht.position.copy(LAMP); lampLicht.target.position.set(0.0, 0.9, 0.2); lamp.add(lampLicht, lampLicht.target);
 let lichtDoel = 1, lichtK2 = 1, slotGedaan = false, slotBezig = false;
 function lichtStap(dt) {
-  lichtK2 = damp(lichtK2, lichtDoel, 3.2, dt);
-  key.intensity = lerp(0.12, 3.3, lichtK2); rim.intensity = lerp(0.9, 2.6, lichtK2); fill.intensity = lerp(0.04, 0.32, lichtK2);
-  scene.environmentIntensity = lerp(0.07, 0.42, lichtK2);
-  lampLicht.intensity = lerp(14, 0, lichtK2); peer.material.emissiveIntensity = lerp(6, 0.15, lichtK2);
+  if (lamp.visible) koordStap(dt);
+  lichtK2 = damp(lichtK2, lichtDoel, lichtDoel < lichtK2 ? 16 : 3.6, dt);   // schakelaar: in een tel uit, weer aan rustig
+  // licht uit = echt uit: zij staat in het donker, enkel de titel licht op (CSS)
+  key.intensity = lerp(0, 3.3, lichtK2); rim.intensity = lerp(0, 2.6, lichtK2); fill.intensity = lerp(0, 0.32, lichtK2);
+  scene.environmentIntensity = lerp(0.012, 0.42, lichtK2);
+  peer.material.emissiveIntensity = lerp(0, 1.6, lichtK2);
 }
 function klik() { try { const c = voice.ctx; if (!c || STIL) return; const o = c.createOscillator(), g = c.createGain(); o.type = 'square'; o.frequency.value = 2600; g.gain.setValueAtTime(0.12, c.currentTime); g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + 0.035); o.connect(g).connect(c.destination); o.start(); o.stop(c.currentTime + 0.05); } catch (e) {} }
 const wacht = ms => new Promise(r => setTimeout(r, ms));
+const zacht = k => k * k * k * (k * (6 * k - 15) + 10);
+// trekken per beeld (niet per klok): elke stap van het koord valt exact op een beeld
+function trek(van, naar, dur) { return new Promise(r => { greepDoel.anim = { van, naar, dur: dur / 1000, t: 0, r }; }); }
 async function slot() {
   if (slotBezig || actief !== 'next') return; slotBezig = true;
   const nog = () => actief === 'next';
-  avatar.dans(2.6); await zegt('einde-1'); if (!nog()) { slotBezig = false; return; }
-  avatar.reik('R', () => ({ tip: bol.position.clone(), a: new THREE.Vector3(0.1, 1, 0.05), hand: 0.13, pole: new THREE.Vector3(-1, -0.7, 0.2), palm: new THREE.Vector3(1, 0, 0) }));
-  zegt('einde-2'); await wacht(1500); if (!nog()) { avatar.reik('R', null); slotBezig = false; return; }
-  for (let i = 0; i <= 8; i++) { koordTrek = 0.075 * Math.sin(i / 8 * Math.PI / 2); zetKoord(); await wacht(22); }
+  const stop = () => { greepDoel.aan = false; vastDoel = 0; avatar.vuist('R', 0); avatar.reik('R', null); slotBezig = false; };
+  avatar.dans(2.6); await zegt('einde-1'); if (!nog()) return stop();
+  // reiken: duim omhoog, vingers naar voren, handpalm naar het koord (zoals een skistok vastpakken)
+  greepDoel.pull = 0; greepDoel.corr.set(0, 0, 0); greepDoel.aan = true;
+  avatar.reik('R', () => ({ tip: greepG0().add(greepDoel.corr), a: new THREE.Vector3(0.25, 0.12, 1), hand: 0.075, pole: new THREE.Vector3(-0.85, -1, 0.05), palm: new THREE.Vector3(1, 0, -0.25) }));
+  zegt('einde-2');
+  await wacht(1150);
+  for (let i = 0; i < 90 && avatar.greepPunt('R').distanceTo(greepG0()) > 0.012; i++) await wacht(16);
+  if (!nog()) return stop();
+  avatar.vuist('R', 1); await wacht(170); vastDoel = 1; await wacht(260);
+  await trek(0, 0.085, 420);                                          // stevig naar beneden trekken; het koord zit in haar vuist
+  if (!nog()) return stop();
   klik(); lichtDoel = 0; document.body.classList.add('licht-uit'); document.documentElement.classList.add('licht-uit');
-  await wacht(140);
-  for (let i = 8; i >= 0; i--) { koordTrek = 0.075 * Math.sin(i / 8 * Math.PI / 2); zetKoord(); await wacht(26); }
-  await wacht(350); avatar.reik('R', null); await wacht(500);
+  await trek(0.085, 0.055, 260);                                      // spanning eraf
+  avatar.vuist('R', 0); await wacht(140); vastDoel = 0; greepDoel.aan = false;
+  await wacht(200); avatar.reik('R', null); await wacht(700);
   slotGedaan = true; slotBezig = false;
   if (nog()) zegt('einde-3');
 }
-function lichtAan() { lichtDoel = 1; document.body.classList.remove('licht-uit'); document.documentElement.classList.remove('licht-uit'); }
+function lichtAan() { if (greepDoel.anim) { const r = greepDoel.anim.r; greepDoel.anim = null; r(); } lichtDoel = 1; document.body.classList.remove('licht-uit'); document.documentElement.classList.remove('licht-uit'); }
 $('#slot-knop').addEventListener('click', () => slot());
 
 // ---------- formaten: haar ronddraaien met de muis (alleen rond de verticale as) ----------
@@ -539,8 +580,11 @@ addEventListener('resize', maat); maat();
 const klok = new THREE.Clock();
 function lus(ms) {
   requestAnimationFrame(lus);
-  if (window.STOPLUS) { klok.getDelta(); return; }        // debug: lus gepauzeerd (handmatig stappen)
-  const dt = Math.min(0.05, klok.getDelta()), t = klok.elapsedTime;
+  if (window.STOPLUS) { klok.getDelta(); return; }        // debug: lus gepauzeerd (handmatig stappen via __dbg.beeld)
+  beeld(ms, Math.min(0.05, klok.getDelta()));
+}
+function beeld(ms, dt) {
+  const t = klok.elapsedTime;
   if (lenis) lenis.raf(ms);
   kiesStand();
   for (const k of ['cx', 'cy', 'cz', 'ly', 'fov', 'lx', 'lz', 'sx']) stand[k] = damp(stand[k] ?? doel[k], doel[k] ?? stand[k], RUST ? 50 : 2.6, dt);
@@ -651,4 +695,4 @@ avatar.load('models/aellia.glb?v=111846', f => { pct.textContent = Math.round(f 
   if (!trailerAan) siteStart();          // anders start de site pas als de trailer de iris opent
 }).catch(e => { pct.textContent = 'error'; console.error(e); });
 requestAnimationFrame(lus);
-window.__dbg = { avatar, camera, voice, live, scene, renderer, kitDetail, opSectie };
+window.__dbg = { avatar, camera, voice, live, scene, renderer, kitDetail, opSectie, beeld: dt => beeld(performance.now(), dt), slot, bol };
