@@ -195,7 +195,9 @@ function plaatsHotspots() {
 const introBtn = $('#intro-btn');
 introBtn.addEventListener('click', async () => {
   if (voice.playing) { voice.stop(); return; }
-  kijkNaar = null; await voice.playUrl('audio/intro.mp3');
+  // net de trailer gezien? dan eerst welkom en "hopelijk vond je het leuk", daarna dezelfde voorstelling
+  const lijn = trailerGezien && !welkomGedaan ? 'intro-trailer' : 'intro'; if (lijn === 'intro-trailer') welkomGedaan = true;
+  kijkNaar = null; await voice.playUrl(`audio/${lijn}.mp3`);
 });
 voice.onstate = s => {
   introBtn.classList.toggle('is-spreekt', s === 'speaking');
@@ -647,6 +649,7 @@ function beeld(ms, dt) {
 // ---------- trailer: eerst de film (met geluid), dan opent de meetstip de site ----------
 const trailer = $('#trailer'), tv = $('#trailer-video');
 let trailerAan = !!trailer && !RUST, siteGestart = false;
+let trailerGezien = false, welkomGedaan = false;   // gezien = meer dan 60 % van de trailer bekeken
 function siteStart() {
   if (siteGestart) return; siteGestart = true;
   document.body.classList.add('is-geladen');
@@ -677,7 +680,7 @@ if (trailer) {
   });
   $('#trailer-skip').addEventListener('click', () => trailerOpen());
   $('#trailer-verder').addEventListener('click', () => trailerOpen());
-  tv.addEventListener('timeupdate', () => { if (tv.duration && tv.currentTime > tv.duration - 0.7) trailerOpen(); });
+  tv.addEventListener('timeupdate', () => { if (tv.duration && tv.currentTime > tv.duration * 0.6) trailerGezien = true; if (tv.duration && tv.currentTime > tv.duration - 0.7) trailerOpen(); });
   tv.addEventListener('ended', () => trailerOpen());
   const weer = $('#trailer-weer');
   if (weer) weer.addEventListener('click', () => { voice.stop(); trailerToon(); trailer.classList.add('speelt'); tv.currentTime = 0; tv.play(); });
