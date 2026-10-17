@@ -379,6 +379,9 @@ main{z-index:4}
 @property --gat { syntax: '<length>'; inherits: true; initial-value: 0px; }
 .trailer{position:fixed;inset:0;z-index:85;--gat:0px;--px:50%;--py:52%}
 .trailer[hidden]{display:none}
+/* trailer: gewone muispijl (de mint cursor ligt onder deze laag), handje op de knoppen */
+.trailer{cursor:default}.trailer button,.trailer a{cursor:pointer}
+body:has(.trailer:not([hidden]):not(.is-open)) .cursor{opacity:0}
 .trailer__beeld{position:absolute;inset:0;background:#07070c;
   -webkit-mask:radial-gradient(circle at var(--px) var(--py),transparent var(--gat),#000 calc(var(--gat) + .5px));
           mask:radial-gradient(circle at var(--px) var(--py),transparent var(--gat),#000 calc(var(--gat) + .5px))}
@@ -394,7 +397,7 @@ main{z-index:4}
 .trailer__sub{font-size:17px;color:rgba(255,255,255,.78);margin:0 0 30px;max-width:44ch}
 .trailer__knoppen{display:flex;align-items:center;gap:22px}
 .knop--wit{background:#fff;color:var(--inkt)}
-.trailer__skip,.trailer__verder{border:0;background:none;color:rgba(255,255,255,.72);font:500 14px/1 var(--tekst);cursor:inherit;padding:10px 0}
+.trailer__skip,.trailer__verder{border:0;background:none;color:rgba(255,255,255,.72);font:500 14px/1 var(--tekst);cursor:pointer;padding:10px 0}
 .trailer__skip:hover,.trailer__verder:hover{color:#fff}
 .trailer__verder{position:absolute;right:var(--pad);bottom:34px;opacity:0;pointer-events:none;transition:opacity .4s var(--ease-uit);
   padding:10px 16px;border-radius:999px;background:rgba(255,255,255,.12);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
