@@ -587,6 +587,7 @@ function lus(ms) {
 }
 function beeld(ms, dt) {
   const t = klok.elapsedTime;
+  muziekStap(dt);
   if (lenis) lenis.raf(ms);
   kiesStand();
   for (const k of ['cx', 'cy', 'cz', 'ly', 'fov', 'lx', 'lz', 'sx']) stand[k] = damp(stand[k] ?? doel[k], doel[k] ?? stand[k], RUST ? 50 : 2.6, dt);
@@ -651,9 +652,34 @@ const trailer = $('#trailer'), tv = $('#trailer-video');
 let trailerAan = !!trailer && !RUST, siteGestart = false;
 let trailerGezien = false, welkomGedaan = false;   // gezien = meer dan 60 % van de trailer bekeken
 function siteStart() {
-  if (siteGestart) return; siteGestart = true;
+  if (siteGestart) return; siteGestart = true; muziekStart();
   document.body.classList.add('is-geladen');
   if (!RUST && actief === 'hero' && scrollY < innerHeight * 0.3) { avatar.startIntro(); avatar.update(0); }   // ze wandelt binnen en zwaait
+}
+
+// ---------- achtergrondmuziek: altijd eerst Clarity, dan Winter Lullaby, dan opnieuw ----------
+const LIJST = ['audio/muziek/clarity.mp3', 'audio/muziek/winter-lullaby.mp3'];
+const muziek = new Audio(LIJST[0]), mKnop = $('#muziek-knop');
+muziek.preload = 'auto'; muziek.volume = 0;
+let mNr = 0, mAan = !STIL, mGestart = false, mVol = 0;
+try { if (localStorage.getItem('aellia-muziek') === 'uit') mAan = false; } catch (e) {}
+muziek.addEventListener('ended', () => { mNr = (mNr + 1) % LIJST.length; muziek.src = LIJST[mNr]; if (mAan) muziek.play().catch(() => {}); });
+function muziekStart() { if (mGestart || !mAan) return; mGestart = true; muziek.play().catch(() => { mGestart = false; }); }
+// browsers laten pas geluid toe na een klik of toets: lukt de start niet, dan bij de eerste interactie
+for (const t of ['pointerdown', 'keydown']) addEventListener(t, () => { if (siteGestart && !trailerAan) muziekStart(); }, { passive: true });
+function zetMuziekKnop() { if (!mKnop) return; mKnop.setAttribute('aria-pressed', String(mAan)); mKnop.classList.toggle('is-aan', mAan && mGestart); mKnop.title = mAan ? 'Music off' : 'Music on'; }
+if (mKnop) mKnop.addEventListener('click', () => {
+  mAan = !mAan; try { localStorage.setItem('aellia-muziek', mAan ? 'aan' : 'uit'); } catch (e) {}
+  if (mAan) { mGestart = false; muziekStart(); } zetMuziekKnop();
+});
+zetMuziekKnop();
+function muziekStap(dt) {
+  // zacht op de achtergrond, nog zachter zodra Amara praat; weg tijdens de trailer of als hij uit staat
+  const doel = !mAan || trailerAan ? 0 : voice.playing ? 0.06 : 0.2;
+  mVol = damp(mVol, doel, doel < mVol ? 5 : 1.1, dt); muziek.volume = clamp(mVol, 0, 1);
+  if (doel === 0 && mVol < 0.003 && !muziek.paused) muziek.pause();
+  else if (doel > 0 && mGestart && muziek.paused) muziek.play().catch(() => {});
+  if (mKnop) mKnop.classList.toggle('is-aan', mAan && mGestart && !muziek.paused);
 }
 function trailerToon() {
   trailerAan = true; trailer.hidden = false; trailer.className = 'trailer'; document.body.classList.add('trailer-aan');
@@ -698,4 +724,4 @@ avatar.load('models/aellia.glb?v=111846', f => { pct.textContent = Math.round(f 
   if (!trailerAan) siteStart();          // anders start de site pas als de trailer de iris opent
 }).catch(e => { pct.textContent = 'error'; console.error(e); });
 requestAnimationFrame(lus);
-window.__dbg = { avatar, camera, voice, live, scene, renderer, kitDetail, opSectie, beeld: dt => beeld(performance.now(), dt), slot, bol };
+window.__dbg = { avatar, camera, voice, live, scene, renderer, kitDetail, opSectie, beeld: dt => beeld(performance.now(), dt), slot, bol, muziek };
