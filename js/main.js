@@ -358,19 +358,20 @@ const jacht = { gevonden: false, geluid: false, vast: 0, tik: 0, ctx: null };
 const zoeker = $('#zoeker'), jachtEl = $('#jacht'), jachtStatus = $('#jacht-status');
 const STIL = new URLSearchParams(location.search).has('stil');
 if (STIL) { const b = document.createElement('div'); b.className = 'stil-badge'; b.textContent = 'Muted test mode · remove ?stil from the URL for sound'; document.body.appendChild(b); }
-function blip(f, d = 0.014, v = 0.06) {
+function blip(f, d = 0.016, v = 0.09) {
   if (!jacht.ctx || STIL) return;
   const c = jacht.ctx, o = c.createOscillator(), g = c.createGain(); o.frequency.value = f; o.type = 'square';
   g.gain.setValueAtTime(v, c.currentTime); g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + d);
   o.connect(g).connect(c.destination); o.start(); o.stop(c.currentTime + d + 0.01);
 }
-$('#jacht-start').addEventListener('click', () => {
+function jachtStart() {
   if (!jacht.ctx) { try { jacht.ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }
   jacht.ctx && jacht.ctx.resume();
   jacht.geluid = true; jacht.gevonden = false; jacht.vast = 0; jachtEl.classList.remove('is-gevonden');
   poi.classList.remove('is-aan'); jachtStatus.textContent = 'Listen. Faster ticking means warmer.';
   $('#jacht-start span:last-child').textContent = 'Searching…';
-});
+}
+$('#jacht-start').addEventListener('click', jachtStart);
 function lekGevonden() {
   jacht.gevonden = true; jacht.geluid = false; zoeker.classList.remove('is-aan');
   jachtEl.classList.add('is-gevonden'); jachtStatus.textContent = 'Found it. The pressure relief valve is leaking.';
@@ -401,6 +402,7 @@ $$('.tabs button').forEach(b => b.addEventListener('click', () => {
   const i = +b.dataset.tab; siteStap.dataset.scene = String(i);
   $$('.tabs button').forEach(x => x.setAttribute('aria-selected', String(x === b)));
   $$('.paneel').forEach(p => p.classList.toggle('is-aan', +p.dataset.paneel === i));
+  if (i === 1 && !jacht.geluid && !jacht.gevonden) jachtStart();     // Invisible gas: de tikker loopt meteen (de tabklik geeft geluid vrij)
 }));
 
 // ---------- cast: verschijnen + hover-diepte ----------
@@ -675,7 +677,8 @@ if (mKnop) mKnop.addEventListener('click', () => {
 zetMuziekKnop();
 function muziekStap(dt) {
   // zacht op de achtergrond, nog zachter zodra Amara praat; weg tijdens de trailer of als hij uit staat
-  const doel = !mAan || trailerAan ? 0 : voice.playing ? 0.06 : 0.2;
+  const jaagt = jacht.geluid && scene_i === 1 && actief === 'site';   // lekzoeker: muziek bijna weg, zodat je de tikker hoort
+  const doel = !mAan || trailerAan ? 0 : voice.playing ? 0.06 : jaagt ? 0.035 : 0.2;
   mVol = damp(mVol, doel, doel < mVol ? 5 : 1.1, dt); muziek.volume = clamp(mVol, 0, 1);
   if (doel === 0 && mVol < 0.003 && !muziek.paused) muziek.pause();
   else if (doel > 0 && mGestart && muziek.paused) muziek.play().catch(() => {});
